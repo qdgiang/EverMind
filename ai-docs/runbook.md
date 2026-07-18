@@ -59,6 +59,10 @@ docker compose -f infra/docker-compose.yml exec -T -e REPLAY_PACE_MS=0 api \
 > **git-bash on Windows:** prefix these with `export MSYS_NO_PATHCONV=1` (or use
 > PowerShell) — otherwise `/tmp/...` args get rewritten to Windows paths before
 > they reach the container.
+>
+> **Frontend edits on Windows:** Next's file watcher doesn't see host edits
+> through the bind mount — after changing FE code, run
+> `docker compose -f infra/docker-compose.yml restart frontend` to recompile.
 
 After this: 9 users in the persona switcher data, 118 messages captured across
 both groups (`GET /health/capture` shows both alive).

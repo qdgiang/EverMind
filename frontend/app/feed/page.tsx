@@ -3,13 +3,20 @@ import Link from "next/link";
 import { api } from "@/lib/api-client";
 import type { FeedEntry, InboxItem } from "@/lib/types";
 
-export default async function FeedPage() {
+export default async function FeedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ as?: string }>;
+}) {
+  // Persona is a HANDLE ("linh") since PR #42. `?as=<handle>` is the interim
+  // selector until DSH-1's switcher is wired to /personas (B follow-up).
+  const { as: persona = "linh" } = await searchParams;
   let feed: FeedEntry[] = [];
   let inbox: InboxItem[] = [];
   try {
     [feed, inbox] = await Promise.all([
-      api.get<FeedEntry[]>("/feed", "1"),
-      api.get<InboxItem[]>("/inbox", "1"),
+      api.get<FeedEntry[]>("/feed", persona),
+      api.get<InboxItem[]>("/inbox", persona),
     ]);
   } catch {
     // backend not reachable — render empty rather than crash the page
