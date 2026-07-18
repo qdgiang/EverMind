@@ -1,19 +1,16 @@
 """Owner: B. Ledger, promotion, radar lamps, overload, escalation
 (SIG-1..5, plan.md P2/P3/P4).
-
-P2 (this file, so far): SIG-1 ledger emit only — every mention is appended,
-never deduped or merged at write time; promotion (P3) is what counts
-accumulated mentions per identity and decides whether to propose a `blocked`
-state or a `requested` dependency edge.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from evermind.contracts.enums import SignalKind, SignalStatus
+from evermind.org.service import OrgService
+from evermind.signals import promotion
 from evermind.signals.models import Signal
 
 
@@ -55,11 +52,38 @@ class SignalsService:
         )
         return list(self.session.scalars(stmt))
 
-    def try_promote(self, project_id: int, normalized_topic: str) -> None:
-        """TODO(B, P3): SIG-1 promotion — >=2 corroborating signals, or 1 +
-        staleness, emits a `RecordSignal`/proposed-blocked command via
-        `decisions.service` (never writes tasks.blocked_* directly)."""
-        raise NotImplementedError
+    def try_promote(self, *, project_id: int, normalized_topic: str,
+                     task_id: int | None = None, party_id: int | None = None,
+                     now: datetime | None = None) -> promotion.PromotionDecision | None:
+        """SIG-1 promotion. Evaluates the pure rule (`signals.promotion.evaluate`
+        — >=2 corroborating, or 1 + staleness) against every open signal for
+        this identity; returns the `PromotionDecision` that WOULD be submitted,
+        or None if not (yet) eligible.
+
+        Actually submitting it — a `RecordSignal` command through
+        `decisions.service.handle` (never a direct write to `tasks.blocked_*`,
+        architecture.md: signals "must NOT ... mutate tasks; it proposes via
+        commands") — is blocked on DEC-1..9 existing (Lane A, still
+        NotImplementedError); wire that call here once it does.
+        """
+        open_signals = self.open_signals_for_identity(
+            project_id=project_id, normalized_topic=normalized_topic,
+            task_id=task_id, party_id=party_id,
+        )
+        return promotion.evaluate(open_signals, now=now or datetime.now(timezone.utc))
+
+    def resolve_waiting_on(self, text: str) -> dict:
+        """SIG-2 — `waiting_on` resolution: fuzzy-match `text` against known
+        `parties` via `org.service` (signals IS on org's read-port allowlist,
+        architecture.md), else keep the free text (G22). `org.service.
+        match_party_alias` doesn't exist yet (Lane A) — this call will raise
+        NotImplementedError until it does; the fallback-to-text branch below
+        is what SIG-2 actually promises when no match is found.
+        """
+        party = OrgService(self.session).match_party_alias(text)
+        if party is not None:
+            return {"party_id": party.id}
+        return {"waiting_on_text": text}
 
     def radar_sweep(self) -> list[dict]:
         """TODO(B, P4): SIG-3 daily job — flush-before-read, then lamps: blocked/
