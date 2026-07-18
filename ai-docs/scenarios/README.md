@@ -49,6 +49,11 @@ End-to-end scenario traces against `../design-v2.md`. Two batches:
 | [S36](S36-talking-back-to-the-bot.md) | Run 7c: replies to bot posts, self-ingestion | ★★★★ |
 | [S37](S37-booth-changes-hands.md) | Run 7d: cross-project task transfer | ★★★★ |
 | [S38](S38-khoa-split-week.md) | Run 7e: two-project composite — **clean** | ★★★★ |
+| [S39](S39-merge-eats-itself.md) | Run 8a: merge × dependencies self-loop — fixed | ★★★ |
+| [S40](S40-peer-lead-decision-war.md) | Run 8b: equal-rank decision churn — **accepted** | ★★★ |
+| [S41](S41-provisional-vanishes.md) | Run 8c: pruning a provisional with holdings — fixed | ★★★ |
+| [S42](S42-escalation-lands-where.md) | Run 8d: cross-boundary escalation routing — fixed | ★★★ |
+| [S43](S43-proposal-negotiation.md) | Run 8e: proposal under negotiation — **accepted** | ★★★ |
 
 ## Blockers — break a stated rule, lose data, or kill a hero demo beat
 
@@ -131,6 +136,7 @@ current revision until two consecutive runs found nothing:
 | 5 (probe) | S24–S28 | **G45** message revisions + pinned citations (HIGH) · **G46** media & forwards (MED-HIGH) · **G47** standing teams + org-level ongoing home (HIGH) · **G48** team-less task governance (MED) · **G49** proposal hygiene (LOW-MED) | rev 5 |
 | 6 (probe) | S29–S33 | **G50** reply-target hydration + approval-by-reply (HIGH) · **G51** org-level dependency matrix (MED) · **G52** terminal-state locks + approval revalidation (MED-HIGH) · **G53** capture liveness & chat-id migration (MED-HIGH) · **G54** org timezone (LOW) · **G55** contested lamp + green-light retraction (LOW-MED) | rev 6 |
 | 7 | S34–S38 (S38 ✓clean) | **G56** idle/dateless lamp + anchored warnings (MED) · **G57** project end_date facet + defaulted-date cascade (MED-HIGH) · **G58** outbound registry + self-ingestion exclusion (MED) · **G59** cross-project transfer op (MED) | rev 8 |
+| 8 (adversarial, triaged per settled #15) | S39–S43 | FIXED: **G60** merge self-loops (LOW-MED) · **G62** holdings-aware pruning (MED) · **G63** escalation routing (MED). ACCEPTED: **G61** peer-lead churn detection · **G64** in-negotiation state | rev 9 — zero open unaccepted gaps |
 
 **Convergence status:** rev 4 achieved two consecutive clean runs (3–4) on coordination
 semantics. The user-requested probe run 5 then targeted **new territory** — the platform

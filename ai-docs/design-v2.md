@@ -1,4 +1,4 @@
-# Design v2 — decision-driven tasks (rev 8)
+# Design v2 — decision-driven tasks (rev 9)
 
 > Consolidates: the human review (`UPDATE_REVIEW_FROM_HUMAN.md` + `decision-log.xlsx` /
 > `task-log.xlsx`), the settled decisions of 2026-07-18, and **all fixes from scenario
@@ -34,6 +34,8 @@ precision >> recall.
 | 12 | 2026-07-18: probe run 6 (S29–S33) absorbed — reply-target hydration + approval-by-reply (G50), org-level dependency matrix (G51), terminal-state locks + approval-time revalidation (G52), capture liveness & chat-id migration (G53), org timezone (G54), contested lamp + green-light retraction (G55). Counter still reset. |
 | 13 | 2026-07-18 directives: **(a) the core models a generic chat platform** — send message, reply/thread, emoji react, edit, media, membership events; platform-specific quirks (id migrations, privacy modes, delete-signal availability) live in adapters, and scenario-testing stays platform-generic. **(b) One chat group ↔ exactly one project, permanently.** G47's standing-team/org-level machinery is recast as **program projects** (`projects.end_date` nullable): campaigns are dated, programs are not; each has its own groups. |
 | 14 | 2026-07-18: run 7 (S34–S38; S38 clean) absorbed — idle/dateless lamp + anchored warnings (G56), project `end_date` as a decidable facet with defaulted-date cascade (G57), outbound-message registry + self-ingestion exclusion (G58), cross-project transfer op (G59). All MEDIUM-grade; counter still reset. |
+| 15 | 2026-07-18 directive — **gap-acceptance policy**: small gaps MAY be accepted un-fixed when the fix's complexity outweighs the gap's likelihood/impact under the 48h hackathon clock. Every accepted gap is recorded in §Accepted gaps with rationale + workaround — accepted ≠ forgotten. Scenario verdicts triage: FIX (cheap or important) vs ACCEPT (niche + costly). |
+| 16 | 2026-07-18: adversarial run 8 (S39–S43) triaged under #15 — FIXED: merge drops pair-internal edges + re-runs DAG check (G60), holdings-aware provisional pruning (G62), cross-boundary escalation routing (G63). ACCEPTED: peer-lead decision-churn detection (G61), in-negotiation proposal state (G64). Zero open unaccepted gaps at rev 9. |
 
 ## Entities
 
@@ -134,7 +136,7 @@ The supersession unit is **(scope-target, facet-key)**. At most ONE effective de
 | `attr:<name>` | set | per (target, attr-name): `attr:budget`, `attr:venue`, `attr:quantity`… extractor names the attr; candidates include the target's existing effective attrs so names converge |
 | `note` | append | never supersedes, never conflicts |
 | team/project scope | set on `attr:<topic>` | policies: `attr:donation-method`, `attr:entry-fee`, `attr:budget-cap`, `attr:class-schedule`… same one-effective rule per (scope, topic) |
-| `merge` | task-scoped, on the survivor | absorbed task → `status: merged, merged_into: survivor`; updates/signals/citations/dependencies re-point (deps deduped), assignments union; the absorbed task's effective decisions enter the survivor's per-unit resolution (newest wins, rest flip superseded — normal machinery reused). Authority: lead over any owning team of either task. Split = compose (create children + refine parent), not a new op |
+| `merge` | task-scoped, on the survivor | absorbed task → `status: merged, merged_into: survivor`; updates/signals/citations/dependencies re-point (deps deduped), assignments union; the absorbed task's effective decisions enter the survivor's per-unit resolution (newest wins, rest flip superseded — normal machinery reused). Authority: lead over any owning team of either task. **Edges between the merged pair are dropped** (identity confusion, not sequencing), and the DAG check re-runs over the survivor's edges — a cycle aborts the merge with the path shown (G60). Split = compose (create children + refine parent), not a new op |
 | `project` (task) | set | **cross-project transfer (G59)**. Authority: two-key — source lead + destination lead (either proposes, the other's approval effects it; coordinator alone suffices). Transaction: re-validate all edges vs the G51 matrix (violations → `needs-rewire`, PICs notified); clear `task_teams` (destination re-teams, else project-level per G48); re-evaluate dating under the destination; pending proposals on the task → `pending-revalidation`, re-routed to the new home's authority. History keeps its old-project context |
 | `end_date` (project scope) | set | **campaign reschedule (G57)**. Authority: coordinator (or all-leads approval). Cascade in-transaction: unconfirmed `end_date_defaulted` tasks re-default to the new `end − 1` (staying flagged); confirmed/explicit dates untouched; violating or now-oddly-early dates surface as a one-time per-team "reschedule review" checklist (close-out machinery reused). Date-triggered `closing` re-arms/disarms on change; explicit coordinator closing sticks |
 
@@ -313,6 +315,11 @@ digest's needs-attention list.
 - **Idle lamp (G56):** status `todo` and no event of any kind for N days (default 14),
   regardless of dates — catches dateless/unowned work no other lamp can see (programs have no
   countdown). Nudges the PICs, or the team lead when PIC-less (the common zombie case).
+- **Cross-boundary escalation routing (G63):** an escalation about a campaign↔program edge
+  posts **one message per endpoint group**, each rendering its own task's side plus only the
+  carve-out projection of the other side, tagging that group's PIC; the coordinator is tagged
+  in both. If an all-hands group is mapped, a combined copy goes there instead. No DM lane, no
+  extra visibility.
 
 ## Overload
 
@@ -372,8 +379,10 @@ auto-creates a **provisional user** (rank 1, member of that group's team, name f
 platform profile). Provisional members get the full member experience — PIC-able, progress
 lane, proposals, tags, load — and the bot asks the team's lead once: "👋 <name> joined —
 confirm membership?" 👍 → `active` (logged org event); silence → stays provisional, flagged in
-the digest's team section, never silently dropped. Quiet provisional users are pruned after N
-days without the offboarding sweep. Org config changes (users, memberships, new-season teams)
+the digest's team section, never silently dropped. Quiet provisional users are pruned after N days **only if
+they hold nothing** (no PIC-ships, no pending proposals); with holdings, they are kept and
+flagged to the team lead with a mini-sweep — one reassignment proposal per held task,
+dismiss-or-adopt for pending proposals (G62). Historical actor references are never deleted. Org config changes (users, memberships, new-season teams)
 are logged config operations, not decisions.
 
 `departing` triggers the **offboarding sweep**: proposed reassignments for their open tasks,
@@ -428,6 +437,13 @@ maker/time/status · **show-inactive toggle** (superseded AND rejected, badged, 
 - **Phase 2:** bot lanes (proposal announcements, self-confirm 👍, challenges, retractions,
   radar pings), per-team digest routing, speaker-map upload flow.
 - **Phase 3:** dashboard as before + policy log + party grouping + show-inactive.
+
+## Accepted gaps (settled #15 — recorded, not forgotten)
+
+| # | Gap | Why accepted | Workaround on record |
+|---|---|---|---|
+| G61 | No decision-churn detection between equal-rank leads (S40) | Needs ≥2 peer leads sharing a unit + sustained conflict — niche in a 10-person NPO; every flip is already announced with receipts and listed in the digest | Coordinator supersession apex + digest visibility; one GROUP BY away if real usage shows churn |
+| G64 | No "in-negotiation" proposal state (S43) | A fourth lifecycle branch (+ nudge suppression + UI) to pause one reminder; nothing breaks without it — pending IS the truth of a negotiation | Haggle in-thread; approve-of-revision sweeps the sibling; dismiss-stale silences nudges |
 
 ## Deferred (roadmap slide)
 
