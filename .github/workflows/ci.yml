@@ -44,8 +44,9 @@ jobs:
 
       - name: lint
         run: |
-          cd backend && uv run ruff check .
-          cd backend && uv run lint-imports
+          cd backend
+          uv run ruff check .
+          uv run lint-imports
 
       - name: L0 + L1 + L3 (pytest)
         run: cd backend && uv run pytest -q
