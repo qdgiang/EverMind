@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from evermind.api.deps import get_session, persona
+from evermind.knowledge.service import KnowledgeService
 
 router = APIRouter(tags=["knowledge"])
 
@@ -14,5 +15,4 @@ class QARequest(BaseModel):
 
 @router.post("/qa")
 def ask(body: QARequest, session: Session = Depends(get_session), who: str = Depends(persona)):
-    """TODO(A): evermind.knowledge.service.KnowledgeService.answer(...)."""
-    raise NotImplementedError
+    return KnowledgeService(session).answer(body.question, who)

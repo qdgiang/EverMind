@@ -17,12 +17,27 @@ const API_URL =
 // unless this header rides along; harmless against any other backend host.
 const BASE_HEADERS = { "ngrok-skip-browser-warning": "1" };
 
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+async function responseError(res: Response): Promise<ApiError> {
+  const body = await res.json().catch(() => null) as { detail?: unknown } | null;
+  const detail = typeof body?.detail === "string" ? body.detail : res.statusText;
+  return new ApiError(res.status, detail || `HTTP ${res.status}`);
+}
+
 async function apiGet<T>(path: string, persona?: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     headers: { ...BASE_HEADERS, ...(persona ? { "X-Persona": persona } : {}) },
     cache: "no-store",
   });
-  if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
+  if (!res.ok) throw await responseError(res);
   return res.json();
 }
 
@@ -34,7 +49,7 @@ async function postCommand<T>(command: CommandEnvelope & Record<string, unknown>
     headers: { ...BASE_HEADERS, "Content-Type": "application/json", "X-Persona": command.persona },
     body: JSON.stringify(command),
   });
-  if (!res.ok) throw new Error(`POST /commands failed: ${res.status}`);
+  if (!res.ok) throw await responseError(res);
   return res.json();
 }
 
@@ -49,7 +64,7 @@ async function uploadTranscript(file: File, persona: string): Promise<{ upload_i
     headers: { ...BASE_HEADERS, "X-Persona": persona },
     body: form,
   });
-  if (!res.ok) throw new Error(`POST /uploads/transcript failed: ${res.status}`);
+  if (!res.ok) throw await responseError(res);
   return res.json();
 }
 

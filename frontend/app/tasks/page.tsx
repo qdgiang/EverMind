@@ -1,22 +1,28 @@
 // DSH-3, owner: B. Task board (read-only). Click a card -> /tasks/[id] for the
 // reasoning popup (log, time-travel).
 import Link from "next/link";
+import { ApiError } from "@/components/dashboard/ApiError";
 import { api } from "@/lib/api-client";
+import { DEFAULT_PERSONA_HANDLE, PERSONA_COOKIE } from "@/lib/persona";
 import type { Task, TaskStatus } from "@/lib/types";
+import { cookies } from "next/headers";
 
 const COLUMNS: TaskStatus[] = ["todo", "doing", "blocked", "done"];
 
 export default async function TasksPage() {
   let tasks: Task[] = [];
+  let error: string | null = null;
+  const persona = (await cookies()).get(PERSONA_COOKIE)?.value ?? DEFAULT_PERSONA_HANDLE;
   try {
-    tasks = await api.get<Task[]>("/tasks");
-  } catch {
-    // backend not reachable — render an empty board rather than crash the page
+    tasks = await api.get<Task[]>("/tasks", persona);
+  } catch (caught) {
+    error = (caught as Error).message;
   }
 
   return (
     <div>
       <h1 className="mb-4 text-lg font-semibold">Task board</h1>
+      {error && <div className="mb-4"><ApiError message={error} /></div>}
       <div className="grid grid-cols-4 gap-4">
         {COLUMNS.map((status) => (
           <div key={status} className="rounded-lg bg-surface-sunken p-3 dark:bg-surface-dark-sunken">

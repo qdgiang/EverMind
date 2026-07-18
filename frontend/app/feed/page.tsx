@@ -1,29 +1,28 @@
 // DSH-2, owner: B. Feed (SRF-1) + Inbox (SRF-2).
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { ApiError } from "@/components/dashboard/ApiError";
 import { api } from "@/lib/api-client";
+import { DEFAULT_PERSONA_HANDLE, PERSONA_COOKIE } from "@/lib/persona";
 import type { FeedEntry, InboxItem } from "@/lib/types";
 
-export default async function FeedPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ as?: string }>;
-}) {
-  // Persona is a HANDLE ("linh") since PR #42. `?as=<handle>` is the interim
-  // selector until DSH-1's switcher is wired to /personas (B follow-up).
-  const { as: persona = "linh" } = await searchParams;
+export default async function FeedPage() {
   let feed: FeedEntry[] = [];
   let inbox: InboxItem[] = [];
+  let error: string | null = null;
+  const persona = (await cookies()).get(PERSONA_COOKIE)?.value ?? DEFAULT_PERSONA_HANDLE;
   try {
     [feed, inbox] = await Promise.all([
       api.get<FeedEntry[]>("/feed", persona),
       api.get<InboxItem[]>("/inbox", persona),
     ]);
-  } catch {
-    // backend not reachable — render empty rather than crash the page
+  } catch (caught) {
+    error = (caught as Error).message;
   }
 
   return (
     <div className="grid grid-cols-2 gap-6">
+      {error && <div className="col-span-2"><ApiError message={error} /></div>}
       <section>
         <h1 className="mb-4 text-lg font-semibold">Feed</h1>
         {feed.length === 0 && <p className="text-sm text-slate-500">No entries yet.</p>}

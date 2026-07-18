@@ -52,3 +52,19 @@ def test_replay_resolves_thread_ref_to_message_id(db_session: Session):
     ).first()
     assert threaded is not None
     assert isinstance(threaded.thread_ref, int)
+
+
+def test_replay_calls_the_composition_callback_for_each_new_message(db_session: Session):
+    seen: list[int] = []
+    connector = ReplayConnector(db_session)
+
+    connector.replay(
+        DATA_V2 / "corpus.jsonl", channel_group_ids=CHANNEL_GROUP_IDS,
+        on_message=seen.append,
+    )
+    connector.replay(
+        DATA_V2 / "corpus.jsonl", channel_group_ids=CHANNEL_GROUP_IDS,
+        on_message=seen.append,
+    )
+
+    assert seen == list(range(1, 119))
