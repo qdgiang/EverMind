@@ -3,15 +3,16 @@
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from evermind.contracts.enums import SignalKind, SignalStatus
 from evermind.org.service import OrgService
-from evermind.signals import promotion
+from evermind.signals import promotion, radar
 from evermind.signals.models import Signal
+from evermind.tasks.service import TasksService
 
 
 class SignalsService:
@@ -85,11 +86,58 @@ class SignalsService:
             return {"party_id": party.id}
         return {"waiting_on_text": text}
 
-    def radar_sweep(self) -> list[dict]:
-        """TODO(B, P4): SIG-3 daily job — flush-before-read, then lamps: blocked/
-        at-risk/overdue/stale/idle/late-start/contested. Reads `tasks.service`
-        (read port)."""
-        raise NotImplementedError
+    def radar_sweep(self, *, project_id: int | None = None,
+                     now: datetime | None = None) -> list[dict]:
+        """SIG-3 — daily job: sweep every non-terminal task for lamps (blocked/
+        overdue/stale/idle/late-start/contested — `at_risk` is a documented gap,
+        see radar.py). Cadence/dedup (PIC day1 -> LCA day3 -> every 3 days, max
+        one entry/task/day) is a `surfacing` feed concern (SRF-1), not this
+        method's — this returns every currently-triggered lamp, unfiltered.
+        """
+        now = now or datetime.now(timezone.utc)
+        tasks_service = TasksService(self.session)
+        entries: list[dict] = []
+        for task in tasks_service.list_tasks(project_id=project_id):
+            if task.status in ("done", "canceled", "merged"):
+                continue
+            snapshot = radar.TaskSnapshot(
+                task_id=task.id, status=task.status, start_date=task.start_date,
+                end_date=task.end_date, last_event_at=tasks_service.last_event_at(task.id),
+            )
+            flips = tasks_service.status_flip_actors(
+                task.id, since=now - timedelta(days=radar.CONTESTED_WINDOW_DAYS),
+            )
+            lamps = radar.sweep_task(snapshot, now=now, status_flip_actors=flips)
+            for lamp in lamps:
+                entries.append({"task_id": task.id, "lamp": lamp})
+        return entries
+
+    def escalation_for_dependency_edge(self, predecessor_task_id: int,
+                                         successor_task_id: int) -> list[dict]:
+        """SIG-5 — cross-boundary (campaign<->program) escalation: one card per
+        endpoint side, each carrying its own task plus only a carve-out
+        projection (id + status) of the other side (G63). Same-project LCA
+        routing needs `org.service.manager_chain` (Lane A, not built) — that
+        path isn't wired here yet.
+        """
+        tasks_service = TasksService(self.session)
+        predecessor = tasks_service.get_task(predecessor_task_id)
+        successor = tasks_service.get_task(successor_task_id)
+        if predecessor is None or successor is None:
+            raise LookupError("both tasks must exist")
+        if predecessor.project_id == successor.project_id:
+            return []  # same-project: not a cross-boundary escalation
+
+        return [
+            {
+                "own_task_id": predecessor.id,
+                "carve_out": {"task_id": successor.id, "status": successor.status},
+            },
+            {
+                "own_task_id": successor.id,
+                "carve_out": {"task_id": predecessor.id, "status": predecessor.status},
+            },
+        ]
 
     def overload_for(self, user_id: int) -> dict:
         """TODO(B, P6): SIG-4 — per-day concurrent load, next 14 days,

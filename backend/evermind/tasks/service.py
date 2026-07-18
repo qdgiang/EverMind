@@ -33,6 +33,54 @@ class TasksService:
             )
         )
 
+    def list_tasks(self, *, project_id: int | None = None,
+                    statuses: tuple[str, ...] | None = None) -> list[Task]:
+        """Read port for SIG-3 radar + SRF-3 digest — every task, optionally
+        scoped to a project and/or a set of statuses."""
+        stmt = select(Task)
+        if project_id is not None:
+            stmt = stmt.where(Task.project_id == project_id)
+        if statuses is not None:
+            stmt = stmt.where(Task.status.in_(statuses))
+        return list(self.session.scalars(stmt))
+
+    def pics_of(self, task_id: int) -> list[int]:
+        """G1: a task may have several PICs (multi-slot assignment)."""
+        return list(
+            self.session.scalars(
+                select(TaskAssignment.user_id).where(TaskAssignment.task_id == task_id)
+            )
+        )
+
+    def last_event_at(self, task_id: int) -> datetime | None:
+        """Latest of any `task_updates` row or `task_decision_log` row touching
+        this task — the "no event of any kind" clock SIG-3's stale/idle lamps
+        need (G56/G8: in-doing no event N days / todo no event 14 days).
+        """
+        update_ts = self.session.scalar(
+            select(TaskUpdate.ts).where(TaskUpdate.task_id == task_id)
+            .order_by(TaskUpdate.ts.desc()).limit(1)
+        )
+        decision_ts = self.session.scalar(
+            select(TaskDecisionLog.ts).where(TaskDecisionLog.task_id == task_id)
+            .where(TaskDecisionLog.retracted.is_(False))
+            .order_by(TaskDecisionLog.ts.desc()).limit(1)
+        )
+        candidates = [ts for ts in (update_ts, decision_ts) if ts is not None]
+        return max(candidates) if candidates else None
+
+    def status_flip_actors(self, task_id: int, *, since: datetime) -> list[tuple[datetime, int]]:
+        """G55 contested lamp input: (ts, actor_user_id) for every status-kind
+        update since `since`."""
+        rows = self.session.execute(
+            select(TaskUpdate.ts, TaskUpdate.actor_user_id)
+            .where(TaskUpdate.task_id == task_id)
+            .where(TaskUpdate.kind == "status")
+            .where(TaskUpdate.ts >= since)
+            .order_by(TaskUpdate.ts)
+        ).all()
+        return [(row.ts, row.actor_user_id) for row in rows]
+
     def is_pic(self, task_id: int, user_id: int) -> bool:
         """TSK-2 — the single fact `decisions.service` needs to route an update
         lane (G7 auto-apply vs G9 confirm-card); the rank/authority half of that
