@@ -13,9 +13,13 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
   "http://localhost:8000";
 
+// ngrok's free tier answers browser-shaped requests with an HTML interstitial
+// unless this header rides along; harmless against any other backend host.
+const BASE_HEADERS = { "ngrok-skip-browser-warning": "1" };
+
 async function apiGet<T>(path: string, persona?: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
-    headers: persona ? { "X-Persona": persona } : undefined,
+    headers: { ...BASE_HEADERS, ...(persona ? { "X-Persona": persona } : {}) },
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
@@ -27,7 +31,7 @@ async function apiGet<T>(path: string, persona?: string): Promise<T> {
 async function postCommand<T>(command: CommandEnvelope & Record<string, unknown>): Promise<T> {
   const res = await fetch(`${API_URL}/commands`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-Persona": command.persona },
+    headers: { ...BASE_HEADERS, "Content-Type": "application/json", "X-Persona": command.persona },
     body: JSON.stringify(command),
   });
   if (!res.ok) throw new Error(`POST /commands failed: ${res.status}`);
@@ -42,7 +46,7 @@ async function uploadTranscript(file: File, persona: string): Promise<{ upload_i
   form.append("file", file);
   const res = await fetch(`${API_URL}/uploads/transcript`, {
     method: "POST",
-    headers: { "X-Persona": persona },
+    headers: { ...BASE_HEADERS, "X-Persona": persona },
     body: form,
   });
   if (!res.ok) throw new Error(`POST /uploads/transcript failed: ${res.status}`);

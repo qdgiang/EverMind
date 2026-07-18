@@ -143,8 +143,29 @@ serverless-shaped). Import via the Vercel UI:
    `frontend/.env.example`.)
 4. Deploy. Every push to `main` redeploys production; PRs get preview URLs.
 
-To make it live later: host the API publicly (VPS profile above), then set
-`NEXT_PUBLIC_API_URL` **and** `API_URL_INTERNAL` to its URL in the Vercel
-project settings and redeploy. Browser-side writes (upload, command client)
-additionally need CORS middleware on the API — tracked follow-up; SSR reads
-work without it.
+To make it live later: host the API publicly (VPS profile above, **or ngrok —
+next section**), then set `NEXT_PUBLIC_API_URL` **and** `API_URL_INTERNAL` to
+its URL in the Vercel project settings and redeploy. The API ships CORS
+(`allow_origins=["*"]`, no credentials — demo-honest per settled #3), so
+browser-side writes work cross-origin.
+
+### Vercel → local stack via ngrok
+
+Point the deployed FE at the compose stack on this machine:
+
+1. Local stack up + data loaded (§1–2), then tunnel the API:
+
+   ```sh
+   ngrok http 8000
+   ```
+
+2. Copy the `https://….ngrok-free.app` URL into the Vercel project →
+   **Settings → Environment Variables**, as BOTH `NEXT_PUBLIC_API_URL` and
+   `API_URL_INTERNAL` → **Redeploy**.
+3. Done — the vercel.app pages now render this machine's live data.
+
+Notes: free-tier ngrok URLs change on every restart (reserve your free static
+domain in the ngrok dashboard to avoid re-setting env + redeploying each
+time); the api-client already sends `ngrok-skip-browser-warning` so browser
+calls bypass ngrok's interstitial page; the tunnel exposes the
+unauthenticated demo API to anyone with the URL — run it only while demoing.
