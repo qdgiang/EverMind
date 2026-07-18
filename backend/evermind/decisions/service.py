@@ -53,7 +53,7 @@ from evermind.contracts.enums import (
 from evermind.contracts.ports import TaskReadPort
 from evermind.db.eventlog import DomainEvent
 from evermind.decisions.authority import AuthorityDecision, AuthorityService
-from evermind.decisions.facets import UnitPlan, canonical_value, derive_unit_plan
+from evermind.decisions.facets import UnitPlan, derive_unit_plan
 from evermind.decisions.models import (
     Decision,
     DecisionCitation,
@@ -69,16 +69,20 @@ EXPECTED_VACANT = "vacant"  # expected_version sentinel: "I expect no standing d
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    # timezone-AWARE: every timestamp column is TIMESTAMPTZ (db/base.py, G54);
+    # Postgres returns aware datetimes, so naive locals would TypeError on
+    # comparison the moment a row round-trips.
+    return datetime.now(timezone.utc)
 
 
-def _naive_utc(value: datetime | None) -> datetime | None:
-    """Storage stays UTC (G54); normalize tz-aware inputs to naive UTC."""
+def _as_utc(value: datetime | None) -> datetime | None:
+    """Normalize command-supplied timestamps to AWARE UTC (G54): naive inputs
+    are taken as UTC, aware ones converted."""
     if value is None:
         return None
-    if value.tzinfo is not None:
-        return value.astimezone(timezone.utc).replace(tzinfo=None)
-    return value
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 def _iso(value: datetime | None) -> str | None:
@@ -232,8 +236,8 @@ class DecisionsService:
             scope=cmd.scope, scope_target=cmd.scope_target,
             description=cmd.description, context=cmd.context, note=cmd.note,
             ops=[op.model_dump() for op in cmd.ops],
-            effect_window_from=_naive_utc(window[0]) if window else None,
-            effect_window_until=_naive_utc(window[1]) if window else None,
+            effect_window_from=_as_utc(window[0]) if window else None,
+            effect_window_until=_as_utc(window[1]) if window else None,
             status=status,
             approved_by_user_id=approved_by,
             approval_via=approval_via,
@@ -340,7 +344,7 @@ class DecisionsService:
                     "error": "chat-originated decisions need >=1 evidence citation"}
 
         recorded_at = _utcnow()
-        ts = _naive_utc(cmd.ts) or recorded_at
+        ts = _as_utc(cmd.ts) or recorded_at
         if ts > recorded_at + timedelta(days=1):
             # impossible chronology -> triage, never a silent write [EVM-012]
             self._emit("triage_raised", "command", 0,
@@ -397,8 +401,6 @@ class DecisionsService:
 
         # ── born-effective gate (DEC-1) ──────────────────────────────────
         auth_actor = cmd.delegated_by_user_id or cmd.decided_by_user_id
-        via = (ApprovalVia.DELEGATION if cmd.delegated_by_user_id is not None
-               else ApprovalVia.AUTHORITY)
         auth = self._authorize_ops(auth_actor, cmd)
         conf_ok = (cmd.created_from in (CreatedFrom.MARKER, CreatedFrom.DASHBOARD)
                    or (cmd.confidence is not None and cmd.confidence >= self.tau))
@@ -570,12 +572,16 @@ class DecisionsService:
                 "diff": diff}
 
     def _overlapping_window(self, cmd: ProposeDecision, plan: UnitPlan) -> Decision | None:
-        start, until = (_naive_utc(cmd.effect_window[0]), _naive_utc(cmd.effect_window[1]))
+        if cmd.effect_window is None:
+            return None
+        start, until = (_as_utc(cmd.effect_window[0]), _as_utc(cmd.effect_window[1]))
         return self._overlapping_window_for(start, until, plan.occupied_units)
 
-    def _overlapping_window_for(self, start: datetime, until: datetime,
+    def _overlapping_window_for(self, start: datetime | None, until: datetime | None,
                                 units: list[str],
                                 exclude_id: int | None = None) -> Decision | None:
+        if start is None or until is None:
+            return None
         rows = self.session.execute(
             select(Decision, DecisionUnit.unit_key)
             .join(DecisionUnit, DecisionUnit.decision_id == Decision.id)
@@ -911,14 +917,15 @@ class DecisionsService:
     # ═══════════════════════════════════ task updates & signals (gateway side)
 
     def _record_task_update(self, cmd: RecordTaskUpdate) -> dict:
-        ts = _naive_utc(cmd.ts) or _utcnow()
+        ts = _as_utc(cmd.ts) or _utcnow()
         task_id = cmd.task_id
-        view = self.task_port.get_task_view(task_id) if self.task_port else None
+        port = self.task_port
+        view = port.get_task_view(task_id) if port else None
 
-        if view is not None and view.status is TaskStatus.MERGED and view.merged_into:
+        if port and view is not None and view.status is TaskStatus.MERGED and view.merged_into:
             # ops aimed at a merged husk auto-redirect to the survivor (G52)
             task_id = view.merged_into
-            view = self.task_port.get_task_view(task_id)
+            view = port.get_task_view(task_id)
 
         if view is not None and view.status is TaskStatus.CANCELED:
             # TSK-6 terminal lock: notes only; status attempts get the canceling
@@ -958,7 +965,7 @@ class DecisionsService:
         return {"status": "applied", "task_id": task_id, "lane": lane}
 
     def _record_signal(self, cmd: RecordSignal) -> dict:
-        ts = _naive_utc(cmd.ts) or _utcnow()
+        ts = _as_utc(cmd.ts) or _utcnow()
         # identity key [EVM-013] rides in the payload; B's ledger folds/dedups
         self._emit("signal_recorded", "signal", cmd.task_id or 0,
                    {"signal_kind": cmd.signal_kind, "project_id": cmd.project_id,
@@ -977,7 +984,7 @@ class DecisionsService:
         self._emit("corroboration_appended", "decision", decision.id,
                    {"decision_id": decision.id,
                     "message_ids": [cmd.citation.message_id]},
-                   _naive_utc(cmd.ts) or _utcnow(), cmd)
+                   _as_utc(cmd.ts) or _utcnow(), cmd)
         return {"status": "corroborated", "decision_ids": [decision.id]}
 
     # ══════════════════════════════════════════════ interface #8 (work-split)

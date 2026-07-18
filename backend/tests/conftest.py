@@ -16,6 +16,7 @@ import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from evermind.config import settings
 from evermind.db.base import Base
 
 # import every module's models so create_all sees the full schema
@@ -38,12 +39,18 @@ from evermind.decisions.service import DecisionsService
 from evermind.org.seed import load_org_seed
 from evermind.org.service import OrgService
 
-TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "sqlite+pysqlite:///:memory:")
+# Real Postgres by default (settings.database_url reads DATABASE_URL — the CI/
+# compose shape; testing-strategy.md: L1 runs on real Postgres). SQLite in-memory
+# is an explicit opt-in via TEST_DATABASE_URL for no-infra runs — NOT the default,
+# else CI would silently downgrade to SQLite (it sets DATABASE_URL, not TEST_*).
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL") or settings.database_url
 ORG_SEED_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data-v2", "org.json")
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    # timezone-AWARE: every timestamp column is TIMESTAMPTZ (db/base.py, G54) —
+    # naive values would TypeError against aware read-backs.
+    return datetime.now(timezone.utc)
 
 
 @pytest.fixture(scope="session")
@@ -61,7 +68,12 @@ def db_session(engine):
         for table in reversed(Base.metadata.sorted_tables):
             wipe.execute(table.delete())
         wipe.commit()
-    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    # autoflush stays ON (the default): B's fold tests add domain_events and
+    # expect the consumer's next SELECT to see them; A's service flushes
+    # explicitly everywhere, so it is indifferent. (Prod sessions differ —
+    # db/session.py uses autoflush=False; modules that need visibility flush,
+    # see tasks/merge.py.)
+    factory = sessionmaker(bind=engine, expire_on_commit=False)
     session = factory()
     yield session
     session.close()

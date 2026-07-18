@@ -95,7 +95,8 @@ def load_org_seed(session: Session, path: str | Path) -> dict[str, dict[str, int
     for row in data.get("users", []):
         if row.get("manager"):
             user = session.get(User, user_ids[row["handle"]])
-            user.manager_id = user_ids[row["manager"]]
+            if user is not None:
+                user.manager_id = user_ids[row["manager"]]
 
     # platform identities [D5]
     for row in data.get("users", []):

@@ -82,7 +82,7 @@ def test_outcome_recorded_for_replay(service, task_port, org_ids, mk, db_session
 def test_domain_events_appended_same_transaction(service, task_port, org_ids, mk,
                                                  db_session):
     """D3: every state change appends domain_events — the ONLY projection input."""
-    duc, linh = org_ids["users"]["duc"], org_ids["users"]["linh"]
+    duc = org_ids["users"]["duc"]
     task_port.add(1, org_ids["projects"]["P-TT"], team_ids=[org_ids["teams"]["TEAM-EV"]])
     pending = service.handle(mk.propose(
         duc, [mk.op_set("task:1", "attr:x", 1)], created_from=CreatedFrom.LLM,
@@ -165,7 +165,6 @@ def test_merged_husk_redirects_to_survivor(service, task_port, org_ids):
 def test_record_signal_appends_event_only(service, org_ids, db_session):
     """SIG-1 gateway half: signals enter as events with the [EVM-013] identity
     key in the payload; B's ledger folds them."""
-    duc = org_ids["users"]["duc"]
     outcome = service.handle(RecordSignal(
         client_command_id=uuid.uuid4(), persona="user-duc",
         created_from=CreatedFrom.LLM, confidence=0.7,
