@@ -1,0 +1,38 @@
+{
+  "_comment": "data-v3 org seed — 'Đêm nhạc Vì Trẻ Thơ' charity music festival. Four REAL actors (live Telegram re-enactment). platform_chat_id values are placeholders: bind them to the real group chat ids when the crawler joins (see README).",
+  "projects": [
+    {"id": "P-DN", "name": "Đêm nhạc Vì Trẻ Thơ 2026", "kind": "campaign", "end_date": "2026-07-21", "status": "active"}
+  ],
+  "teams": [
+    {"id": "TEAM-HC", "project_id": "P-DN", "name": "Hậu cần"},
+    {"id": "TEAM-TT", "project_id": "P-DN", "name": "Truyền thông"}
+  ],
+  "chat_groups": [
+    {"id": "G-AE", "platform": "telegram", "platform_chat_id": "REPLACE_WITH_REAL_CHAT_ID_HOI_AE", "project_id": "P-DN", "team_id": null, "channel_name": "hoi-ae"},
+    {"id": "G-CORE", "platform": "telegram", "platform_chat_id": "REPLACE_WITH_REAL_CHAT_ID_BTC_CORE", "project_id": "P-DN", "team_id": null, "channel_name": "btc-core"}
+  ],
+  "users": [
+    {"handle": "giang", "name": "Giang", "role_rank": 3, "status": "active", "platform_user_id": "REPLACE_WITH_TELEGRAM_ID_GIANG"},
+    {"handle": "minh", "name": "Minh", "role_rank": 2, "status": "active", "platform_user_id": "REPLACE_WITH_TELEGRAM_ID_MINH"},
+    {"handle": "huy", "name": "Huy", "role_rank": 2, "status": "active", "platform_user_id": "REPLACE_WITH_TELEGRAM_ID_HUY"},
+    {"handle": "chau", "name": "Châu", "role_rank": 1, "status": "active", "platform_user_id": "REPLACE_WITH_TELEGRAM_ID_CHAU"}
+  ],
+  "user_teams": [
+    {"user": "minh", "team": "TEAM-HC", "role_in_team": "lead"},
+    {"user": "huy", "team": "TEAM-TT", "role_in_team": "lead"},
+    {"user": "chau", "team": "TEAM-TT", "role_in_team": "member"},
+    {"user": "chau", "team": "TEAM-HC", "role_in_team": "member"}
+  ],
+  "parties": [
+    {"id": "PTY-NVH", "name": "Nhà Văn Hóa Quận 3", "aliases": ["NVH", "nhà văn hóa"], "kind": "institution", "contact_note": "venue — sảnh chính ~300 chỗ, 5tr/ngày gồm điện nước"},
+    {"id": "PTY-SV", "name": "Âm Thanh Sao Việt", "aliases": ["Sao Việt", "bên âm thanh"], "kind": "vendor", "contact_note": "sound & stage — gói 8tr: loa, mixer, 4 mic + kỹ thuật viên"},
+    {"id": "PTY-GL", "name": "GreenLeaf Café", "aliases": ["GreenLeaf", "bên cafe"], "kind": "vendor", "contact_note": "sponsor — 5tr + nước uống, đổi logo backdrop + booth"},
+    {"id": "PTY-MA", "name": "Mái Ấm Chợ Lớn", "aliases": ["mái ấm", "chị Loan"], "kind": "institution", "contact_note": "beneficiary — đầu mối chị Loan; 25 bé + 3 cô tham dự"},
+    {"id": "PTY-PN", "name": "Xưởng In Phương Nam", "aliases": ["Phương Nam", "xưởng in"], "kind": "vendor", "contact_note": "print vendor — không phản hồi 3 lần, bị thay"},
+    {"id": "PTY-IN24", "name": "Xưởng In Nhanh 24h", "aliases": ["In Nhanh 24h", "xưởng mới"], "kind": "vendor", "contact_note": "print vendor thay thế — 2.8tr backdrop + banner + badge"},
+    {"id": "PTY-TG", "name": "anh Tùng guitar", "aliases": ["anh Tùng", "Tùng"], "kind": "person", "contact_note": "nghệ sĩ + connect band sinh viên; giới thiệu vendor âm thanh 10tr (không chọn)"},
+    {"id": "PTY-P7", "name": "UBND Phường", "aliases": ["phường", "ủy ban"], "kind": "institution", "contact_note": "cấp giấy phép tổ chức — duyệt sau ~9 ngày"},
+    {"id": "PTY-PT", "name": "Nhà xe Phương Trang quen", "aliases": ["bên xe", "nhà xe"], "kind": "vendor", "contact_note": "xe đưa đón các bé — đổi 29 chỗ -> 35 chỗ"}
+  ],
+  "role_rank_map": {"coordinator": 3, "lead": 2, "member": 1}
+}

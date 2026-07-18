@@ -1,0 +1,98 @@
+{
+  "_comment": "data-v3 answer key — expected END-STATE after the full corpus (replay or live re-enactment). CONTENT-anchored: cite messages by id for replay; for live runs match by text snippet (live message ids differ). Scenario dates live inside message text, never in send-time, so a compressed live re-enactment produces the same key. Optional acts (reactions/edits) are listed separately — the core key never depends on them.",
+  "counts": {
+    "messages": 280,
+    "by_channel": {"hoi-ae": 186, "btc-core": 94},
+    "decisions_total": 30,
+    "decisions_final_effective": 25,
+    "decisions_superseded": 2,
+    "decisions_rejected_veto": 2,
+    "decisions_effective_windowed": 1,
+    "tasks": 15,
+    "markers": {"!decision": ["m0052", "m0077", "m0146", "m0180"], "!blocked": ["m0086"]},
+    "photos": ["m0072", "m0120", "m0263", "m0277"]
+  },
+  "decisions": [
+    {"id": "D-01", "source": "m0006", "maker": "giang", "status": "effective", "scope": "project", "summary": "Sự kiện: CN 20/07, tên Đêm nhạc Vì Trẻ Thơ, mở cửa 18h00", "note": "facet open_time bị D-29 supersede ngày 20/07; date + name vẫn hiệu lực"},
+    {"id": "D-02", "source": "m0030", "maker": "giang", "status": "superseded", "superseded_by": "D-12", "summary": "Tổng ngân sách tối đa 30 triệu"},
+    {"id": "D-03", "source": "m0039", "maker": "giang", "status": "effective", "summary": "Mái Ấm Chợ Lớn là đơn vị thụ hưởng toàn bộ quyên góp"},
+    {"id": "D-04", "source": "m0048", "maker": "huy", "status": "effective", "scope": "team-TT policy", "summary": "Fanpage đăng đều 3 bài/tuần tới ngày sự kiện", "note": "bị D-17 SHADOW trong cửa sổ 07-13/07, không bao giờ bị supersede"},
+    {"id": "D-05", "source": "m0052", "maker": "minh", "status": "effective", "created_from": "marker", "summary": "Chốt NVH Quận 3, thuê 20/07, 5.000.000đ", "corroborated_by": ["m0125"]},
+    {"id": "D-06", "source": "m0055", "approved_via_reply": "m0058", "maker": "huy", "approver": "giang", "status": "effective", "summary": "Lineup v1: Kiến Trúc mở màn, tốp ca các bé, acoustic anh Tùng, dance nhóm Lửa, hợp xướng kết", "note": "bị D-15 supersede rồi ĐƯỢC PHỤC HỒI khi D-15 bị veto (m0153) — trạng thái cuối: effective"},
+    {"id": "D-07", "source": "m0060", "approved_via_reply": "m0062", "maker": "chau", "approver": "giang", "status": "effective", "summary": "Duyệt gian hàng handmade (tạo task T-07, PIC Châu)", "note": "decision tạo task vẫn effective; TASK sau đó bị D-19 cancel"},
+    {"id": "D-08", "source": "m0077", "maker": "minh", "status": "effective", "created_from": "marker", "summary": "Chốt Âm Thanh Sao Việt gói 8.000.000đ"},
+    {"id": "D-09", "source": "m0079", "approved_via_reply": "m0080", "maker": "minh", "approver": "giang", "status": "effective", "summary": "Phân bổ ngân sách: 5+8+3+2+2 = 20tr, buffer 10tr", "note": "m0080 là REPLY — test reply-approval hydration"},
+    {"id": "D-10", "source": "m0096", "approved_via_reply": "m0098", "maker": "chau", "approver": "giang", "status": "effective", "summary": "Mời 20 bé mái ấm tham dự, khu ưu tiên hàng đầu (kèm tạo task xe đưa đón T-09)", "note": "headcount sau nâng lên 25+3 trong D-22"},
+    {"id": "D-11", "source": "m0103", "approved_via_reply": "m0104", "maker": "huy", "approver": "giang", "status": "effective", "summary": "Nhận tài trợ GreenLeaf: 5tr + nước uống, đổi logo backdrop + booth"},
+    {"id": "D-12", "source": "m0106", "approved_via_reply": "m0107", "maker": "minh", "approver": "giang", "status": "effective", "supersedes": "D-02", "summary": "Nâng tổng ngân sách 30tr → 35 triệu"},
+    {"id": "D-13", "source": "m0109", "approved_via_reply": "m0111", "maker": "huy", "approver": "giang", "status": "effective", "summary": "Vé vào cửa tự nguyện, mức gợi ý 50.000đ"},
+    {"id": "D-14", "source": "m0146", "maker": "huy", "status": "rejected", "rejected_reason": "veto", "vetoed_by": "m0148", "created_from": "marker", "summary": "In 500 tờ rơi 800k — bị Giang veto, KHÔNG có decision cũ nào được phục hồi (không có tiền nhiệm)"},
+    {"id": "D-15", "source": "m0151", "maker": "huy", "status": "rejected", "rejected_reason": "veto", "vetoed_by": "m0153", "summary": "Lineup v2 (thêm rap mở màn, EDM kết) — veto ⇒ D-06 lineup v1 PHỤC HỒI (resurrection)"},
+    {"id": "D-16", "source": "m0157", "maker": "minh", "status": "superseded", "superseded_by": "D-22", "summary": "Thuê xe 29 chỗ, 1.3tr khứ hồi"},
+    {"id": "D-17", "source": "m0163", "maker": "giang", "status": "effective", "effect_window": "2026-07-07 → 2026-07-13", "summary": "WINDOWED EXCEPTION: riêng tuần 07-13/07 fanpage 1 bài/tuần — SHADOW D-04, hết cửa sổ tự trả về 3 bài/tuần"},
+    {"id": "D-18", "source": "m0180", "maker": "minh", "status": "effective", "created_from": "marker", "summary": "Đổi đơn vị in: bỏ Phương Nam, chốt Xưởng In Nhanh 24h, budget in giữ 3tr"},
+    {"id": "D-19", "source": "m0183", "approved_via_reply": "m0185", "maker": "minh", "approver": "giang", "status": "effective", "summary": "HỦY gian hàng handmade (cancel T-07); Châu chuyển sang check-in + khu các bé", "corroborated_by": ["m0203"], "note": "kéo theo edge phụ thuộc T-07→T-08 thành needs_rewire"},
+    {"id": "D-20", "source": "m0187", "maker": "giang", "status": "effective", "summary": "Rewire T-08: vẫn mượn bàn ghế nhưng đổi mục đích (khu các bé + booth GreenLeaf, bỏ kệ)"},
+    {"id": "D-21", "source": "m0192", "approved_via_reply": "m0193", "maker": "minh", "approver": "giang", "status": "effective", "summary": "Tổng duyệt 19h00 ngày 18/07 tại NVH"},
+    {"id": "D-22", "source": "m0197", "approved_via_reply": "m0198", "maker": "minh", "approver": "giang", "status": "effective", "supersedes": "D-16", "summary": "Đón 25 bé + 3 cô, đổi thuê xe 35 chỗ"},
+    {"id": "D-23", "source": "m0203", "maker": "giang", "status": "effective", "summary": "30 món handmade chuyển thành quà tặng cho khách đóng góp nhiều nhất", "corroborated_by": ["m0275"]},
+    {"id": "D-24", "source": "m0207", "maker": "chau", "status": "effective", "approval_via": "delegation", "delegation_grant": ["m0190", "m0206"], "summary": "Trang phục: áo trắng + badge cam, TNV thêm dây đeo cam — Châu (member) chốt HIỆU LỰC nhờ ủy quyền của Giang"},
+    {"id": "D-25", "source": "m0223", "maker": "giang", "status": "effective", "summary": "MC: Huy chính, Châu co-host phần giao lưu các bé", "note": "resolve topic MC từng bị park (m0136) và hỏi không ai trả lời (m0156)"},
+    {"id": "D-26", "source": "m0233", "maker": "giang", "status": "effective", "summary": "Phương án mưa 20/07: mưa sau 16h thì chuyển check-in + booth vào sảnh phụ", "note": "m0261 là KÍCH HOẠT plan đã chốt, không phải decision mới"},
+    {"id": "D-27", "source": "m0246", "maker": "giang", "relayed_by": "minh", "self_confirmed_by": "m0249", "status": "effective", "summary": "RELAYED: sau tổng duyệt cả nhóm ở lại 15 phút phân ca — Minh chuyển lời, sinh ra ở trạng thái proposed, Giang tự xác nhận (m0249, REPLY) mới hiệu lực"},
+    {"id": "D-28", "source": "m0253", "maker": "giang", "status": "effective", "summary": "Phân ca ngày hội: Minh hậu trường, Huy MC + sân khấu, Châu check-in + khu các bé, Giang đối ngoại"},
+    {"id": "D-29", "source": "m0256", "maker": "giang", "status": "effective", "supersedes": "D-01 (chỉ facet open_time)", "summary": "Đổi giờ mở cửa 18h00 → 17h30 — PARTIAL supersession: chỉ chiếm unit giờ mở cửa, ngày + tên sự kiện của D-01 vẫn hiệu lực"},
+    {"id": "D-30", "source": "m0271", "maker": "giang", "status": "effective", "summary": "Chuyển toàn bộ 42.350.000đ cho Mái Ấm Chợ Lớn trong tuần (kèm tạo T-14 lệnh chuyển, T-15 bài công bố)"}
+  ],
+  "tasks": [
+    {"id": "T-01", "title": "Tìm & chốt địa điểm", "created": "m0011", "pic": ["minh"], "final_status": "done", "evidence": ["m0050", "m0052", "m0125"]},
+    {"id": "T-02", "title": "Lineup tiết mục", "created": "m0013", "pic": ["huy"], "final_status": "done", "evidence": ["m0055", "m0088", "m0134"]},
+    {"id": "T-03", "title": "Fanpage sự kiện", "created": "m0015", "pic": ["chau"], "final_status": "done", "evidence": ["m0045", "m0093", "m0159", "m0210"]},
+    {"id": "T-04", "title": "Xin tài trợ", "created": "m0017", "pic": ["huy"], "final_status": "done", "evidence": ["m0067", "m0101"]},
+    {"id": "T-05", "title": "Giấy phép tổ chức", "created": "m0019", "pic": ["minh"], "final_status": "done", "was_blocked": {"marker": "m0086", "waiting_on": "UBND Phường", "unblocked": "m0123"}},
+    {"id": "T-06", "title": "Liên hệ nghệ sĩ qua anh Tùng", "created": "m0034", "pic": ["huy"], "final_status": "done", "evidence": ["m0088", "m0134"]},
+    {"id": "T-07", "title": "Gian hàng handmade", "created": "m0062", "pic": ["chau"], "final_status": "canceled", "canceled_by": "D-19"},
+    {"id": "T-08", "title": "Mượn bàn ghế / kệ", "created": "m0065", "pic": ["chau", "minh"], "multi_pic": true, "final_status": "done", "dependency": {"on": "T-07", "declared": "m0066", "after_cancel": "needs_rewire", "rewired_by": "D-20"}},
+    {"id": "T-09", "title": "Xe đưa đón các bé", "created": "m0098", "pic": ["minh"], "final_status": "done", "evidence": ["m0116", "m0157", "m0228"]},
+    {"id": "T-10", "title": "Trang đăng ký + QR", "created": "m0112", "pic": ["chau"], "final_status": "done", "evidence": ["m0143", "m0212", "m0258"]},
+    {"id": "T-11", "title": "Thiết kế backdrop + banner", "created": "m0130", "pic": ["chau"], "final_status": "done", "evidence": ["m0216"]},
+    {"id": "T-12", "title": "In backdrop + banner + badge", "created": "m0132", "pic": ["minh"], "final_status": "done", "dependency": {"on": "T-11", "declared": "m0131"}, "was_blocked": {"waiting_on": "Xưởng In Phương Nam", "resolved_by": "D-18"}, "evidence": ["m0216", "m0218", "m0235"]},
+    {"id": "T-13", "title": "Kịch bản MC", "created": "m0226", "pic": ["huy"], "final_status": "done", "evidence": ["m0252"]},
+    {"id": "T-14", "title": "Lệnh chuyển tiền mái ấm", "created": "m0271", "pic": ["minh"], "final_status": "done", "evidence": ["m0277"]},
+    {"id": "T-15", "title": "Bài công bố minh bạch thu chi", "created": "m0271", "pic": ["chau"], "final_status": "doing", "note": "việc mở duy nhất còn lại ở cuối corpus"}
+  ],
+  "signals": [
+    {"topic": "xuong-in-phuong-nam-khong-phan-hoi", "kind": "blocker", "party": "Xưởng In Phương Nam", "mentions": ["m0082", "m0126", "m0177"], "expected": "PROMOTED sau mention thứ 3 (m0177) với citations = CẢ 3 mention (G27); resolved bởi D-18", "note": "không mention đơn lẻ nào đáng ra record — sức mạnh của ledger tích lũy"},
+    {"topic": "greenleaf-cho-phan-hoi", "kind": "blocker", "party": "GreenLeaf Café", "mentions": ["m0067", "m0081"], "expected": "tích lũy 2 mention, KHÔNG BAO GIỜ promoted — resolved bởi D-11 (m0101) trước khi đủ điều kiện"},
+    {"topic": "giay-phep-phuong", "kind": "blocker", "party": "UBND Phường", "mentions": ["m0086"], "expected": "asserted blocked qua marker !blocked (không cần tích lũy) — task T-05 blocked, resolved m0123"},
+    {"topic": "mc-cho-ngay-hoi", "kind": "ask", "mentions": ["m0136", "m0156", "m0222"], "expected": "parked tại m0136 (để sau đi), hỏi không ai trả lời m0156, nhắc lại m0222 — resolved bởi D-25"}
+  ],
+  "distractors": [
+    {"id": "X-01", "source": "m0021", "note": "ăn trưa"},
+    {"id": "X-02", "source": "m0042", "note": "bóng đá MU"},
+    {"id": "X-03", "source": "m0068", "note": "tease poster — không phải commitment"},
+    {"id": "X-04", "source": "m0090", "note": "mượn dây HDMI cá nhân — ADVERSARIAL: nghe giống việc sự kiện nhưng là chuyện laptop ở nhà"},
+    {"id": "X-05", "source": "m0114", "note": "hypothetical Sơn Tùng — KHÔNG phải quyết định lineup"},
+    {"id": "X-06", "source": "m0118", "note": "rủ đá bóng"},
+    {"id": "X-07", "source": "m0138", "note": "penalty"},
+    {"id": "X-08", "source": "m0170", "note": "hóng drama"},
+    {"id": "X-09", "source": "m0195", "note": "đặc sản công tác"},
+    {"id": "X-10", "source": "m0214", "note": "đùa anh Minh ăn khỏe"}
+  ],
+  "optional_acts": [
+    {"act": "reaction", "target": "m0143", "by": "giang", "emoji": "👍", "expected_if_supported": "reaction_act ghi nhận trên tin của Châu"},
+    {"act": "reaction", "target": "m0207", "by": "minh", "emoji": "👍", "expected_if_supported": "reaction_act trên tin chốt trang phục"},
+    {"act": "edit", "target": "m0218", "by": "huy", "wrong_first": "tổng 3.8tr", "final": "tổng 2.8tr", "expected_if_supported": "message_revisions có 2 bản; evidence_state = edited_after_capture nếu đã cite trước khi sửa"}
+  ],
+  "live_run_validation": {
+    "capture_completeness": "186 tin nhóm Hội AE + 94 tin nhóm BTC Core (chưa tính reaction/edit tùy chọn)",
+    "match_by": "so khớp NỘI DUNG (text) — id + timestamp thật sẽ khác kịch bản",
+    "hero_checks": [
+      "Hỏi: 'vì sao đổi xưởng in?' → D-18 + 3 receipts tích lũy m0082/m0126/m0177",
+      "Hỏi: 'lineup chốt cuối cùng là gì?' → D-06 (v1) effective, D-15 (v2) rejected-veto, popup hiện resurrection",
+      "Board: T-07 canceled + T-08 từng needs_rewire rồi done; T-15 là task mở duy nhất",
+      "Budget: 35tr hiệu lực (D-12), 30tr superseded một click xem lại được",
+      "Giờ mở cửa: 17h30 (D-29) — ngày 20/07 + tên sự kiện vẫn thuộc D-01"
+    ]
+  }
+}
