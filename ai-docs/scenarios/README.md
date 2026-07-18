@@ -150,8 +150,9 @@ and their average severity is declining (run 1 of the S1–S15 era: 6 blockers; 
 Run 7 (first under the rev-7 constraints: platform-generic, one group ↔ one project) probed the
 two-project world's own mechanics — program watchfulness, campaign rescheduling, the bot's own
 messages, and cross-project transfer: 4 gaps, **all MEDIUM-grade — first run with no HIGH** —
-plus one clean composite (S38). Clean-run counter remains reset. Register: **G1–G59, all
-addressed in `../design-v2.md`.**
+plus one clean composite (S38). Adversarial run 8 (S39–S43, triaged per settled #15) added
+G60–G64: three fixed, two accepted with rationale. Clean-run counter remains reset. Register:
+**G1–G64 — every gap either fixed in `../design-v2.md` or recorded in its §Accepted gaps.**
 
 **Direction (2026-07-18, post run 6 → rev 7):** scenario verification stays **platform-generic**
 — the core models a plain chat platform (send / reply / emoji-react / edit / media / membership
@@ -161,6 +162,21 @@ standing-team/org-level machinery into **program projects** (`projects.end_date`
 ongoing program; dated = campaign) — corpus seed becomes two projects: "Charity Fair 2026"
 (aiv-events, aiv-comms) and "Weekend Classes" (aiv-education), linked by campaign↔program
 dependency edges where needed.
+
+**Direction (2026-07-18, post run 8 → rev 10):** two user directives on the proposal lifecycle,
+absorbed without a scenario run (settled #17). **(a) Proposals expire:** 48h unapproved →
+`rejected(expired)`; the bot threads a notice onto the proposal's announcement ("expired,
+rejected — renew?"), and the proposer's 👍 flips it back to `proposed` with a fresh 48h.
+Replaces the open-ended 48h re-nudge. **(b) Change-of-mind replaces:** a proposer's own
+different-value proposal on the same unit withdraws their older pending one
+(`rejected(withdrawn)`, linked to the newer); parallel pendings now always mean *different*
+proposers. Ripples into earlier traces (kept as historical records): S18's
+approve-after-two-days now lands on the expiry boundary (renew path), S31's 3-day-late approval
+is bounded away (≤48h; G52 still guards inside the window), S28's ignored queue self-clears at
+48h, S43's accepted negotiation workaround now rides the renew loop, and an unresolved
+peer-conflict hold defaults to the standing decision after 48h (with notices). No new G numbers
+(directives, not scenario finds); clean-run counter stays reset; the next run should probe both
+rules.
 
 ## Reality-check verdict (the question S6–S15 answer)
 
