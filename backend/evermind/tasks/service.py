@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from evermind.tasks.fold import TASK_FIELD_FACETS
 from evermind.tasks.models import (
-    Task, TaskAssignment, TaskDecisionLog, TaskDependency, TaskUpdate,
+    Task, TaskAssignment, TaskDecisionLog, TaskDependency, TaskTeam, TaskUpdate,
 )
 
 
@@ -34,15 +34,55 @@ class TasksService:
         )
 
     def list_tasks(self, *, project_id: int | None = None,
-                    statuses: tuple[str, ...] | None = None) -> list[Task]:
-        """Read port for SIG-3 radar + SRF-3 digest — every task, optionally
-        scoped to a project and/or a set of statuses."""
+                    statuses: tuple[str, ...] | None = None,
+                    team_id: int | None = None, pic_user_id: int | None = None,
+                    description_contains: str | None = None) -> list[Task]:
+        """Read port for SIG-3 radar + SRF-3 digest + DSH-4's task board filter
+        matrix — every task, optionally scoped by project/status/team/PIC/text.
+        """
         stmt = select(Task)
         if project_id is not None:
             stmt = stmt.where(Task.project_id == project_id)
         if statuses is not None:
             stmt = stmt.where(Task.status.in_(statuses))
+        if team_id is not None:
+            stmt = stmt.where(Task.id.in_(
+                select(TaskTeam.task_id).where(TaskTeam.team_id == team_id)
+            ))
+        if pic_user_id is not None:
+            stmt = stmt.where(Task.id.in_(
+                select(TaskAssignment.task_id).where(TaskAssignment.user_id == pic_user_id)
+            ))
+        if description_contains is not None:
+            stmt = stmt.where(Task.description.ilike(f"%{description_contains}%"))
         return list(self.session.scalars(stmt))
+
+    def reasoning_log(self, task_id: int) -> dict:
+        """Popup log — dual stamps (ts vs recorded_at) for everything this
+        module tracks (design-v2.md §Reasoning views, the tasks-owned half).
+        Citation badges + show-inactive (superseded/rejected decisions) need
+        `decisions` (Lane A, not built) — TODO once it exists.
+        """
+        decision_rows = self.session.scalars(
+            select(TaskDecisionLog)
+            .where(TaskDecisionLog.task_id == task_id)
+            .order_by(TaskDecisionLog.ts)
+        ).all()
+        update_rows = self.session.scalars(
+            select(TaskUpdate).where(TaskUpdate.task_id == task_id).order_by(TaskUpdate.ts)
+        ).all()
+
+        log = [
+            {"source": "decision", "decision_id": row.decision_id, "ts": row.ts,
+             "recorded_at": row.recorded_at, "ops": row.ops, "retracted": row.retracted}
+            for row in decision_rows
+        ] + [
+            {"source": "update", "ts": row.ts, "recorded_at": row.recorded_at,
+             "actor_user_id": row.actor_user_id, "kind": row.kind, "payload": row.payload}
+            for row in update_rows
+        ]
+        log.sort(key=lambda entry: (entry["ts"], entry["recorded_at"]))
+        return {"task": self.get_task(task_id), "log": log}
 
     def pics_of(self, task_id: int) -> list[int]:
         """G1: a task may have several PICs (multi-slot assignment)."""
