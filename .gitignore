@@ -17,3 +17,6 @@ logs/
 node_modules/
 .next/
 dist/
+
+# personal scratch notes
+huytr/

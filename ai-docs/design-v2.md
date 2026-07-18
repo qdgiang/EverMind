@@ -1,4 +1,4 @@
-# Design v2 — decision-driven tasks (rev 9)
+# Design v2 — decision-driven tasks (rev 10)
 
 > Consolidates: the human review (`UPDATE_REVIEW_FROM_HUMAN.md` + `decision-log.xlsx` /
 > `task-log.xlsx`), the settled decisions of 2026-07-18, and **all fixes from scenario
@@ -36,6 +36,7 @@ precision >> recall.
 | 14 | 2026-07-18: run 7 (S34–S38; S38 clean) absorbed — idle/dateless lamp + anchored warnings (G56), project `end_date` as a decidable facet with defaulted-date cascade (G57), outbound-message registry + self-ingestion exclusion (G58), cross-project transfer op (G59). All MEDIUM-grade; counter still reset. |
 | 15 | 2026-07-18 directive — **gap-acceptance policy**: small gaps MAY be accepted un-fixed when the fix's complexity outweighs the gap's likelihood/impact under the 48h hackathon clock. Every accepted gap is recorded in §Accepted gaps with rationale + workaround — accepted ≠ forgotten. Scenario verdicts triage: FIX (cheap or important) vs ACCEPT (niche + costly). |
 | 16 | 2026-07-18: adversarial run 8 (S39–S43) triaged under #15 — FIXED: merge drops pair-internal edges + re-runs DAG check (G60), holdings-aware provisional pruning (G62), cross-boundary escalation routing (G63). ACCEPTED: peer-lead decision-churn detection (G61), in-negotiation proposal state (G64). Zero open unaccepted gaps at rev 9. |
+| 17 | 2026-07-18 directives (proposal lifecycle): **(a) proposals expire** — 48h unapproved → `rejected(expired)`; the bot threads a notice onto the proposal's announcement ("expired, rejected — renew?"), and the proposer's 👍 flips it back to `proposed` with a fresh 48h. Replaces the open-ended 48h re-nudge. **(b) change-of-mind replaces** — a proposer's own different-value proposal on the same unit withdraws their older pending one; parallel pendings always mean *different* proposers. Rev 10. |
 
 ## Entities
 
@@ -72,6 +73,8 @@ decisions       {id, ts, recorded_at, decided_by_user_id, decided_by_role_at_tim
                  ops: [{target, facet, op, value}],      -- see Facet registry
                  effect_window?: {from, until},          -- G42: one-off exception, shadows within window
                  status: proposed|effective|superseded|rejected,
+                 rejected_reason?: veto|overruled|expired|withdrawn|dismissed,  -- settled #17
+                 approval_deadline?,                     -- while proposed: ts + 48h; renew re-arms
                  supersedes_decision_id?, superseded_by_decision_id?,
                  approved_by_user_id?, approval_via: authority|delegation|self_confirm?,
                  created_from: marker|llm|dashboard|transcript, confidence}
@@ -149,7 +152,9 @@ standing decision.
 
 Peer conflict: if a second same-unit effective write arrives and the writers' ranks are
 incomparable (§Hierarchy), the later decision is **held `proposed`** and both sides' leads (or
-the fallback set) are tagged — explicit human tiebreak, never silent last-write-wins.
+the fallback set) are tagged — explicit human tiebreak, never silent last-write-wins. The hold
+is still a proposal: untouched for 48h it expires like any other (§Lifecycle) and the standing
+decision prevails — a defaulted outcome with notices, not a silent one.
 
 ## Decision lifecycle
 
@@ -158,8 +163,9 @@ the fallback set) are tagged — explicit human tiebreak, never silent last-writ
   (marker/dashboard: always) ───────────────────────────────► effective ──► superseded
   (new) ──► proposed ── approve / self-confirm 👍 ──► effective     │
               │  ▲                                                  └─ reject ─► rejected
-              │  └ nudge approver at 48h; listed in digest              (see Rejection)
-              └ reject / overruled-by-effective ─► rejected
+              │  └ renew 👍 by proposer (fresh 48h)                     (see Rejection)
+              ├ 48h unapproved ─► rejected(expired) — bot asks "gia hạn?"
+              └ reject / overruled-by-effective / withdrawn(own newer) ─► rejected
 ```
 
 - **Born effective** requires ALL of: maker resolves to a cited author (or mapped speaker);
@@ -174,6 +180,13 @@ the fallback set) are tagged — explicit human tiebreak, never silent last-writ
   chốt", "duyệt") by a sufficiently-ranked user to the proposal's source message or the bot's
   announcement (G50) — the reply is cited as approval evidence; negation replies ("thôi",
   "khỏi") map to reject. Deterministic phrase list first, LLM only for ambiguity.
+- **Expiry (settled #17):** a `proposed` decision carries `approval_deadline = ts + 48h`
+  (`PROPOSAL_TTL_HOURS`; event-time, so replay derives identical folds). Past the deadline
+  unapproved → auto `rejected(expired)`, and the bot threads onto the proposal's announcement,
+  tagging the proposer: "⏰ expired unapproved, rejected — still needed? 👍 to renew". A renew 👍
+  flips it back to `proposed` with a fresh 48h (eventual approval still passes G52
+  revalidation). Uniform across hold reasons — below-τ, relay self-confirm, rank-gate and
+  peer-conflict holds all expire the same way.
 - **Supersession** needs the **rank gate**: `rank(actor) ≥ rank(D_old.decided_by_role_at_time)`
   (snapshot). Fails → born `proposed`, tagged to the original maker / nearest sufficient rank.
 - **Effective-write transaction:** insert new; flip the same-unit predecessor to `superseded`
@@ -183,7 +196,8 @@ the fallback set) are tagged — explicit human tiebreak, never silent last-writ
   **challenge** the maker resolves with one tap. Rejecting a decision **resurrects** each
   decision it superseded (restore `effective` iff no other effective same-unit superseder), then
   refolds. If the rejected decision was announced, the bot posts a **threaded retraction**; the
-  next digest leads with corrections.
+  next digest leads with corrections. Every rejection stores its `rejected_reason`
+  (`veto|overruled|expired|withdrawn|dismissed`).
 
 **Terminal states & stale acts (G52):** `canceled` and `merged` tasks lock the lanes — the
 update lane accepts notes only (a PIC's `!progress` on a canceled task gets a bot reply naming
@@ -336,9 +350,16 @@ PICs of dependents, approver for proposals. **Proposals are always announced** (
 awaiting @approver") so pending ≠ invisible. Non-urgent batches per group (~30 min); dedup per
 person per batch. Retractions thread to the original announcement.
 
-**Proposal hygiene (G49):** a new proposal matching a pending one on (unit, op, value) merges
-into it — citations union, proposers listed, one queue entry, one nudge clock (same-unit
-*different*-value pendings stay separate: real alternatives). Approvers get bulk actions
+**Proposal hygiene (G49; amended by settled #17):** a new proposal matching a pending one on
+(unit, op, value) merges into it — citations union, proposers listed, one queue entry, one
+expiry clock. Same-unit *different*-value pendings stay separate **only across different
+proposers** (real alternatives). **Change-of-mind:** a proposer's own different-value proposal
+on a unit **withdraws** their older pending one — old → `rejected(withdrawn)` with
+`superseded_by := the newer` (popup: "replaced by the proposer's newer proposal"; the bot
+threads "↩️ replaced" onto the old announcement); the new proposal runs a fresh clock. If the
+older entry had merged several proposers, only this proposer is peeled off — the entry lives on
+for the rest as a genuine alternative; the last proposer leaving withdraws it. (Edits inside
+the ~10-min grace stay on the G45 amend lane; a new message routes here.) Approvers get bulk actions
 (approve all / dismiss all from `<person>` / dismiss stale; dismissals = `rejected` with reason,
 visible under show-inactive). The bot replies once to the *sender* of any act that didn't take effect —
 marker-proposal filed ("Got it — sent to @approver, no need to repost 👍"), failed approval
@@ -407,7 +428,7 @@ receipts; no formulas.
 ## Reasoning views
 
 Task popup: grounded summary (decisions + updates + citations only) · list newest→oldest with
-maker/time/status · **show-inactive toggle** (superseded AND rejected, badged, incl. challenges)
+maker/time/status · **show-inactive toggle** (superseded AND rejected, badged with the rejection reason — expired / withdrawn / overruled / veto — incl. challenges)
 · click any entry → state reconstructed at that `ts` (event-time replay) · dual stamps shown when
 `recorded_at` differs. Team/project policy log = the same view filtered by scope.
 
@@ -422,6 +443,9 @@ maker/time/status · **show-inactive toggle** (superseded AND rejected, badged, 
 - `ORG_TIMEZONE` (G54; demo: `Asia/Ho_Chi_Minh`): all week bucketing, day-count lamps, digest
   scheduling, and relative-date resolution ("CN này", "thứ 6") compute in org time; storage
   stays timezone-aware UTC.
+- `PROPOSAL_TTL_HOURS` (settled #17; default 48): unapproved proposals auto-expire to
+  `rejected(expired)`; deadlines are event-time (`ts + TTL`), so replay and live derive the
+  same folds.
 
 ## Phase impact (delta)
 
@@ -432,10 +456,11 @@ maker/time/status · **show-inactive toggle** (superseded AND rejected, badged, 
   cross-linked where needed by campaign↔program dependency edges. Corpus
   rework: add task refs to some markers (both marker forms tested), relabel golden set to
   production windows.
-- **Phase 1:** decision spine per this doc (ops/facets, lifecycle transactions, resurrection),
-  windows incl. bulk-flush + context tail + ledger, update lanes, eval gate above.
+- **Phase 1:** decision spine per this doc (ops/facets, lifecycle transactions, resurrection,
+  proposal expiry + change-of-mind withdrawal), windows incl. bulk-flush + context tail +
+  ledger, update lanes, eval gate above.
 - **Phase 2:** bot lanes (proposal announcements, self-confirm 👍, challenges, retractions,
-  radar pings), per-team digest routing, speaker-map upload flow.
+  expiry notices + renew 👍, radar pings), per-team digest routing, speaker-map upload flow.
 - **Phase 3:** dashboard as before + policy log + party grouping + show-inactive.
 
 ## Accepted gaps (settled #15 — recorded, not forgotten)
@@ -443,7 +468,7 @@ maker/time/status · **show-inactive toggle** (superseded AND rejected, badged, 
 | # | Gap | Why accepted | Workaround on record |
 |---|---|---|---|
 | G61 | No decision-churn detection between equal-rank leads (S40) | Needs ≥2 peer leads sharing a unit + sustained conflict — niche in a 10-person NPO; every flip is already announced with receipts and listed in the digest | Coordinator supersession apex + digest visibility; one GROUP BY away if real usage shows churn |
-| G64 | No "in-negotiation" proposal state (S43) | A fourth lifecycle branch (+ nudge suppression + UI) to pause one reminder; nothing breaks without it — pending IS the truth of a negotiation | Haggle in-thread; approve-of-revision sweeps the sibling; dismiss-stale silences nudges |
+| G64 | No "in-negotiation" proposal state (S43) | A fourth lifecycle branch (+ nudge suppression + UI) to pause one reminder; nothing breaks without it — pending IS the truth of a negotiation | Haggle in-thread; approve-of-revision sweeps the sibling; under settled #17 a >48h negotiation expires — the proposer's renew 👍 keeps it alive |
 
 ## Deferred (roadmap slide)
 
