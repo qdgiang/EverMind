@@ -16,8 +16,8 @@ it (and the window map) in the same commit.**
 |------|------|
 | `corpus.jsonl` | 118 messages (TT 89 · CL 29), one canonical Message per line, globally time-sorted. `id` = `m0001..` and ALWAYS equals the line number (`raw_ref: corpus.jsonl:<N>`). `kind` omitted = text; one `kind:"photo"` message (m0100, caption in `text`). |
 | `org.json` | The v2 seed: projects (campaign + program), teams, groups, users w/ `role_rank` + manager chain (linh = coordinator/root), `user_teams` (khoa & thao are multi-team), parties (vendor / school / ward office / sponsor / departed treasurer). **trang is deliberately absent** — she arrives at m0071 and must be created provisionally (G44). |
-| `answer_key.json` | Planted ground truth: 10 tasks, 15 chat decisions + 3 transcript records, 12 updates, 2 dependencies (one campaign↔program), 3 blockers (1 marked, 1 implicit multi-window, 1 signal-only), parked/none/confidence-gate distractors, wrap notes, 3 hero Q&A, window map. |
-| `meeting-2026-09-07.txt` | All-hands transcript, 30 turns, `[MM:SS] Name: text`, attendee header. 30 < any threshold ⇒ exercises bulk-source **flush-on-upload** (G29). Speaker display names ≠ handles ⇒ exercises the speaker map (G30). |
+| `answer_key.json` | Planted ground truth: 10 tasks, 18 chat decisions + 3 transcript records, 12 updates, 2 dependencies (one campaign↔program), 3 blockers (1 marked, 1 implicit multi-window, 1 signal-only), parked/none/confidence-gate distractors, wrap notes, 3 hero Q&A, window map. |
+| `meeting-2026-09-07.txt` | All-hands transcript, 38 turns, `[MM:SS] Name: text`, attendee header. Speaker display names ≠ handles ⇒ exercises the speaker map (G30). |
 
 ## What this corpus exercises (v2 features, by design)
 
@@ -50,8 +50,9 @@ are exercised live.
 ## Window map (deterministic; ids never shift)
 
 `EXTRACTION_BATCH_SIZE=25` (canonical demo profile): TT windows at TT#25/#50/#75 + tail #76–89
-(flush) · CL window at CL#25 + tail #26–29 (flush) · transcript = one flush-on-upload window.
-At batch=100 both channels are flush-only (single beat at replay end) — valid, just not showy.
+(flush) · CL window at CL#25 + tail #26–29 (flush) · transcript windows of 25 and 13 turns.
+At batch=100 both channels are flush-only (single beat at replay end), and the transcript is
+one 38-turn flush-on-upload window — valid, just not showy.
 Markers fire per-message regardless. Full placement of every planted item:
 `answer_key.json → window_map_batch25`.
 

@@ -30,8 +30,9 @@
 - `org.json`: all referenced users/teams/groups/parties resolve; **trang is absent** (she
   must arrive provisionally — G44); linh is coordinator; matrix members (khoa, thao) have
   multiple `user_teams` rows.
-- Transcript: 30 turns, `[MM:SS] Name:` shape, attendee header parses; 30 < any batch
-  threshold (the flush-on-upload guarantee stays meaningful).
+- Transcript: exactly 38 turns, `[MM:SS] Name:` shape, attendee header parses; batch 25
+  yields windows of 25 and 13 turns, while batch 100 yields one 38-turn flush-on-upload
+  window.
 - **Same-commit rule (enforced socially, checked mechanically):** if `corpus.jsonl` changes
   in a PR, `answer_key.json` must change in the same PR (CI fails otherwise).
 - **v2-only guard:** CI greps the codebase for references to the deleted v1 `data/` path —
@@ -110,7 +111,7 @@ fails loudly.
 ### L4 — E2E demo smoke
 
 Full compose up → seed → **instant** replay (pace 0) → transcript upload → assert the hero
-path end-state: 15 chat decisions + 3 transcript records with expected statuses (D-10
+path end-state: 18 chat decisions + 3 transcript records with expected statuses (D-10
 superseded D-03; D-11 `rejected(overruled)` by D-12; DC-05 windowed under DC-01), 10 tasks
 with expected folds, B-2 promoted with 3 citations, trang provisional, digest views render
 with corrections/pending/aged sections, the three hero Q&A return expected receipts, one
