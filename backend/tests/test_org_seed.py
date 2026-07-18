@@ -5,10 +5,13 @@ from evermind.org.service import OrgService
 
 
 def test_seed_loads_and_maps(org_ids, org: OrgService):
-    assert set(org_ids["projects"]) == {"P-TT", "P-CL"}
-    assert set(org_ids["teams"]) == {"TEAM-EV", "TEAM-ED"}
+    assert set(org_ids["projects"]) == {"P-TT", "P-CL", "P-LIVE"}
+    assert set(org_ids["teams"]) == {"TEAM-EV", "TEAM-ED", "TEAM-LIVE"}
     assert len(org_ids["users"]) == 9
     assert "trang" not in org_ids["users"]  # she must arrive provisionally (G44)
+    # the live telegram group stays a FILL_ME placeholder until its real chat id
+    # is pasted in (runbook §Telegram) — the seed must skip it, not create it
+    assert "G-LIVE" not in org_ids["groups"]
 
     linh = org.get_user_by_handle("linh")
     assert linh.role_rank == 3  # linh is coordinator

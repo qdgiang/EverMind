@@ -63,6 +63,28 @@ async def lifespan(app: FastAPI):
                                   daemon=True)
         thread.start()
 
+    # CAP-4: the live Telegram capture loop — same beat pattern as the
+    # consumers; off unless a bot token is configured (tests, token-less dev).
+    telegram_thread: threading.Thread | None = None
+    telegram_poller = None
+    if settings.telegram_bot_token and settings.telegram_poll_ms > 0:
+        from evermind.api.telegram_poll import TelegramPoller
+        from evermind.db.session import SessionLocal
+
+        telegram_poller = TelegramPoller(SessionLocal)
+
+        def telegram_loop() -> None:
+            while not stop.is_set():
+                try:
+                    telegram_poller.beat()
+                except Exception:  # a bad update never kills capture
+                    logger.exception("telegram poll beat failed")
+                stop.wait(settings.telegram_poll_ms / 1000)
+
+        telegram_thread = threading.Thread(target=telegram_loop,
+                                           name="telegram-poller", daemon=True)
+        telegram_thread.start()
+
     scheduler = None
     if settings.run_scheduler:
         from evermind.db.session import SessionLocal
@@ -76,6 +98,10 @@ async def lifespan(app: FastAPI):
     stop.set()
     if thread is not None:
         thread.join(timeout=5)
+    if telegram_thread is not None:
+        telegram_thread.join(timeout=5)
+    if telegram_poller is not None:
+        telegram_poller.close()
     if scheduler is not None:
         scheduler.shutdown(wait=False)
 

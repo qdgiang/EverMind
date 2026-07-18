@@ -11,9 +11,9 @@ from evermind.connectors.models import Message
 from evermind.contracts.commands import CitationSpec, OpSpec, ProposeDecision
 from evermind.contracts.enums import CitationKind, CreatedFrom, DecisionScope
 from evermind.decisions.service import DecisionsService
+from evermind.ingestion.identity import AuthorResolver
 from evermind.ingestion.models import Materialization
 from evermind.org.models import ChatGroup
-from evermind.org.service import OrgService
 from evermind.tasks.consumer import TasksConsumer
 from evermind.tasks.service import TasksService
 
@@ -57,8 +57,12 @@ class IngestionService:
             return [{"status": "unrouted", "reason": "marker source has no chat group"}]
 
         group = self.session.get(ChatGroup, message.group_id)
-        user = OrgService(self.session).get_user_by_handle(message.author_identity)
-        if group is None or user is None:
+        if group is None:
+            return [{"status": "unresolved_author", "reason": message.author_identity}]
+        # Platform-adapted resolution (ingestion/identity.py): [D5] identity key
+        # for live platforms — with the G44 provisional lane — handle otherwise.
+        user = AuthorResolver(self.session).resolve(message, team_id=group.team_id)
+        if user is None:
             return [{"status": "unresolved_author", "reason": message.author_identity}]
 
         ops = [OpSpec(target="NEW_TASK", facet="description", op="set", value=description)]

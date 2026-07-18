@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     org_timezone: str = "Asia/Ho_Chi_Minh"
 
     telegram_bot_token: str = ""
+    # CAP-4 live capture beat; needs a bot token too — 0 disables the loop.
+    telegram_poll_ms: int = 2000
     replay_pace_ms: int = 800
     grace_window_min: int = 10
     nudge_after_hours: int = 48

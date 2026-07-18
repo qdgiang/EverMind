@@ -2,24 +2,30 @@
   "meta": {
     "purpose": "v2 org seed (design-v2 rev 9): projects, teams, groups, users, memberships, parties",
     "note": "trang is deliberately ABSENT — she arrives mid-corpus (m0071) and must be auto-created as a provisional user (G44). platform_user_id values are synthetic.",
+    "live_note": "P-LIVE/TEAM-LIVE/G-LIVE = the real-Telegram capture demo (runbook §Telegram). FILL_ME values are skipped by the seed until replaced: G-LIVE.platform_chat_id = the group's chat id (from the api log's unmapped-chat line), users[].identities = Telegram usernames (and/or numeric user ids) of demo members. Unlisted senders become provisional users (G44).",
     "authored": "2026-07-18"
   },
   "projects": [
     {"id": "P-TT", "name": "Đêm hội Trăng Rằm 2026", "kind": "campaign", "end_date": "2026-09-26", "status": "active"},
-    {"id": "P-CL", "name": "Weekend Classes", "kind": "program", "end_date": null, "status": "active"}
+    {"id": "P-CL", "name": "Weekend Classes", "kind": "program", "end_date": null, "status": "active"},
+    {"id": "P-LIVE", "name": "Đêm hội Trăng Rằm — Live", "kind": "campaign", "end_date": "2026-09-26", "status": "active"}
   ],
   "teams": [
     {"id": "TEAM-EV", "project_id": "P-TT", "name": "events"},
-    {"id": "TEAM-ED", "project_id": "P-CL", "name": "education"}
+    {"id": "TEAM-ED", "project_id": "P-CL", "name": "education"},
+    {"id": "TEAM-LIVE", "project_id": "P-LIVE", "name": "live-ops"}
   ],
   "chat_groups": [
     {"id": "G-TT", "platform": "generic-chat", "platform_chat_id": "grp-trungthu-001", "project_id": "P-TT", "team_id": "TEAM-EV", "channel_name": "aiv-trungthu"},
-    {"id": "G-CL", "platform": "generic-chat", "platform_chat_id": "grp-classes-001", "project_id": "P-CL", "team_id": "TEAM-ED", "channel_name": "aiv-classes"}
+    {"id": "G-CL", "platform": "generic-chat", "platform_chat_id": "grp-classes-001", "project_id": "P-CL", "team_id": "TEAM-ED", "channel_name": "aiv-classes"},
+    {"id": "G-LIVE", "platform": "telegram", "platform_chat_id": "FILL_ME_TELEGRAM_CHAT_ID", "project_id": "P-LIVE", "team_id": "TEAM-LIVE"}
   ],
   "role_rank_map": {"coordinator": 3, "lead": 2, "member": 1},
   "users": [
-    {"handle": "linh",  "name": "Nguyen Thuy Linh", "role_rank": 3, "manager": null,   "platform_user_id": "u1001", "status": "active"},
-    {"handle": "mai",   "name": "Pham Thi Mai",     "role_rank": 2, "manager": "linh", "platform_user_id": "u1002", "status": "active"},
+    {"handle": "linh",  "name": "Nguyen Thuy Linh", "role_rank": 3, "manager": null,   "platform_user_id": "u1001", "status": "active",
+     "identities": [{"platform": "telegram", "platform_user_id": "FILL_ME_TG_USERNAME_LINH"}]},
+    {"handle": "mai",   "name": "Pham Thi Mai",     "role_rank": 2, "manager": "linh", "platform_user_id": "u1002", "status": "active",
+     "identities": [{"platform": "telegram", "platform_user_id": "FILL_ME_TG_USERNAME_MAI"}]},
     {"handle": "duc",   "name": "Tran Minh Duc",    "role_rank": 1, "manager": "linh", "platform_user_id": "u1003", "status": "active"},
     {"handle": "minh",  "name": "Dang Quang Minh",  "role_rank": 1, "manager": "linh", "platform_user_id": "u1004", "status": "active"},
     {"handle": "huong", "name": "Ngo Thi Huong",    "role_rank": 1, "manager": "linh", "platform_user_id": "u1005", "status": "active"},
@@ -29,6 +35,8 @@
     {"handle": "tuan",  "name": "Nguyen Anh Tuan",  "role_rank": 1, "manager": "mai",  "platform_user_id": "u1009", "status": "active"}
   ],
   "user_teams": [
+    {"user": "linh",  "team": "TEAM-LIVE", "role_in_team": "lead"},
+    {"user": "mai",   "team": "TEAM-LIVE", "role_in_team": "member"},
     {"user": "linh",  "team": "TEAM-EV", "role_in_team": "lead"},
     {"user": "mai",   "team": "TEAM-ED", "role_in_team": "lead"},
     {"user": "duc",   "team": "TEAM-EV", "role_in_team": "member"},
