@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="EverMind knowledge base UI demo — project, task, decision and evidence graph."
+    />
+    <title>EverMind — Knowledge Base Demo</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand-row">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div>
+            <div class="brand-name">EverMind</div>
+            <div class="brand-caption">Organizational memory</div>
+          </div>
+          <button class="sidebar-close icon-button" id="sidebarClose" aria-label="Đóng menu">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+
+        <nav class="primary-nav" aria-label="Điều hướng chính">
+          <p class="nav-label">Workspace</p>
+          <button class="nav-item active" data-view="knowledge">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" /></svg>
+            <span>Knowledge base</span>
+          </button>
+          <button class="nav-item" data-view="map">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2" /><circle cx="18" cy="7" r="2" /><circle cx="8" cy="18" r="2" /><path d="m8 7 8 0M7 8l1 8M10 17l7-8" /></svg>
+            <span>Task & decisions</span>
+            <span class="nav-count">10</span>
+          </button>
+          <button class="nav-item" data-view="decisions">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l3 3v15H5V3h3Z" /><path d="M9 11h6M9 15h6M9 7h3" /></svg>
+            <span>Decision log</span>
+            <span class="nav-count">8</span>
+          </button>
+          <button class="nav-item" data-view="evidence">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
+            <span>Evidence archive</span>
+            <span class="nav-count">24</span>
+          </button>
+          <button class="nav-item" data-section="radar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 4v8l5 3" /></svg>
+            <span>Blocker radar</span>
+            <span class="nav-dot"></span>
+          </button>
+
+          <p class="nav-label projects-label">Projects</p>
+          <button class="project-nav active">
+            <span class="project-color coral"></span>
+            <span class="project-nav-copy">
+              <strong>Đêm hội Trăng Rằm</strong>
+              <small>Campaign · 10 tasks</small>
+            </span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+          </button>
+          <button class="project-nav">
+            <span class="project-color blue"></span>
+            <span class="project-nav-copy">
+              <strong>Weekend Classes</strong>
+              <small>Program · 5 tasks</small>
+            </span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+          </button>
+        </nav>
+
+        <div class="capture-card">
+          <div class="capture-pulse"><span></span></div>
+          <div>
+            <strong>Memory capture active</strong>
+            <small>2 groups · synced 2m ago</small>
+          </div>
+        </div>
+
+        <div class="profile-row">
+          <div class="avatar avatar-linh">LN</div>
+          <div class="profile-copy">
+            <strong>Linh Nguyễn</strong>
+            <small>Coordinator</small>
+          </div>
+          <button class="icon-button more-button" aria-label="Tùy chọn hồ sơ">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>
+          </button>
+        </div>
+      </aside>
+
+      <div class="sidebar-scrim" id="sidebarScrim"></div>
+
+      <main class="main-area">
+        <header class="topbar">
+          <button class="mobile-menu icon-button" id="mobileMenu" aria-label="Mở menu">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+          <button class="search-trigger" id="searchTrigger" aria-label="Tìm trong knowledge base">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16 16 4 4" /></svg>
+            <span>Tìm task, decision hoặc evidence…</span>
+            <kbd>⌘ K</kbd>
+          </button>
+          <div class="topbar-actions">
+            <button class="icon-button help-button" aria-label="Trợ giúp">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M9.8 9a2.4 2.4 0 1 1 3.5 2.1c-.9.5-1.3 1-1.3 2M12 17h.01" /></svg>
+            </button>
+            <button class="icon-button notification-button" aria-label="Thông báo">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7M10 20h4" /></svg>
+              <span></span>
+            </button>
+            <div class="avatar avatar-linh top-avatar">LN</div>
+          </div>
+        </header>
+
+        <section class="page-content">
+          <div class="breadcrumb">
+            <span>Projects</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+            <strong>Đêm hội Trăng Rằm</strong>
+          </div>
+
+          <div class="project-heading">
+            <div class="project-heading-main">
+              <div class="project-symbol">月</div>
+              <div>
+                <div class="heading-eyebrow">
+                  <span class="status-pill campaign">Campaign</span>
+                  <span class="heading-date">26 Sep 2026</span>
+                </div>
+                <h1>Đêm hội Trăng Rằm</h1>
+                <p>Charity night for children · Events team</p>
+              </div>
+            </div>
+            <div class="heading-actions">
+              <button class="secondary-button" id="shareButton">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2" /><circle cx="6" cy="12" r="2" /><circle cx="18" cy="19" r="2" /><path d="m8 11 8-5M8 13l8 5" /></svg>
+                Share view
+              </button>
+              <button class="primary-button" id="askButton">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v11H9l-4 3V5Z" /><path d="M9 9h6M9 12h4" /></svg>
+                Ask EverMind
+              </button>
+            </div>
+          </div>
+
+          <div class="metric-strip" aria-label="Project summary">
+            <div class="metric-card">
+              <span class="metric-icon tasks"><svg viewBox="0 0 24 24"><path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h4" /></svg></span>
+              <div><strong>10</strong><span>Tasks</span></div>
+              <small>6 active</small>
+            </div>
+            <div class="metric-card">
+              <span class="metric-icon decisions"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 8h14M7 16h10" /></svg></span>
+              <div><strong>8</strong><span>Decisions</span></div>
+              <small>2 superseded</small>
+            </div>
+            <div class="metric-card warning">
+              <span class="metric-icon blockers"><svg viewBox="0 0 24 24"><path d="M12 3 2.8 19h18.4L12 3Z" /><path d="M12 9v4M12 17h.01" /></svg></span>
+              <div><strong>2</strong><span>Blockers</span></div>
+              <small>1 needs action</small>
+            </div>
+            <div class="metric-card">
+              <span class="metric-icon evidence"><svg viewBox="0 0 24 24"><path d="M7 3h10v18H7zM10 8h4M10 12h4M10 16h3" /></svg></span>
+              <div><strong>24</strong><span>Receipts</span></div>
+              <small>100% cited</small>
+            </div>
+          </div>
+
+          <div class="view-toolbar">
+            <div class="view-tabs" role="tablist" aria-label="Project views">
+              <button class="view-tab active" role="tab" data-view="knowledge" aria-selected="true">Project knowledge</button>
+              <button class="view-tab" role="tab" data-view="map" aria-selected="false">Task & decision panels</button>
+              <button class="view-tab" role="tab" data-view="decisions" aria-selected="false">Decision log</button>
+              <button class="view-tab" role="tab" data-view="evidence" aria-selected="false">Evidence archive</button>
+            </div>
+            <div class="toolbar-actions">
+              <button class="compact-button" id="teamFilter">
+                <span class="team-swatch"></span> Events team
+                <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" /></svg>
+              </button>
+              <button class="compact-button icon-only" id="fitView" aria-label="Đưa sơ đồ về vị trí ban đầu">
+                <svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="workspace-grid" id="workspaceGrid">
+            <section class="view-panel" id="viewPanel" aria-live="polite"></section>
+            <aside class="inspector" id="inspector" aria-label="Chi tiết task"></aside>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="search-overlay" id="searchOverlay" aria-hidden="true">
+      <button class="overlay-backdrop" data-close-search aria-label="Đóng tìm kiếm"></button>
+      <section class="command-palette" role="dialog" aria-modal="true" aria-labelledby="searchTitle">
+        <div class="command-input-row">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16 16 4 4" /></svg>
+          <label id="searchTitle" class="sr-only" for="globalSearch">Tìm knowledge base</label>
+          <input id="globalSearch" type="search" placeholder="Tìm task, decision, people hoặc evidence…" autocomplete="off" />
+          <kbd>ESC</kbd>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+        <div class="command-footer">
+          <span><kbd>↑</kbd><kbd>↓</kbd> để di chuyển</span>
+          <span><kbd>↵</kbd> để mở</span>
+          <span class="semantic-search"><i></i> Semantic + exact search</span>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-shell" id="evidenceModal" aria-hidden="true">
+      <button class="overlay-backdrop" data-close-modal aria-label="Đóng evidence"></button>
+      <section class="evidence-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div id="modalContent"></div>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
+      <span>Đã sao chép liên kết view</span>
+    </div>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
