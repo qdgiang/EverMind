@@ -10,8 +10,10 @@ export type SignalKind = "blocker" | "dependency" | "ask" | "parked";
 
 export interface Persona {
   id: number;
+  handle: string;
   name: string;
   role_rank: 1 | 2 | 3;
+  status: "provisional" | "active" | "departing";
 }
 
 // The real GET /tasks shape (evermind.tasks.models.Task, jsonable_encoder'd).

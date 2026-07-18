@@ -5,16 +5,21 @@
 // `ingestion`'s job (Lane A, not built) — this only confirms the file landed.
 import { useState } from "react";
 import { api } from "@/lib/api-client";
+import { DEFAULT_PERSONA_HANDLE, PERSONA_COOKIE } from "@/lib/persona";
 
 export default function UploadPage() {
   const [status, setStatus] = useState<string | null>(null);
-  const [persona, setPersona] = useState("1");
-
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const input = (e.currentTarget.elements.namedItem("file") as HTMLInputElement);
     const file = input.files?.[0];
     if (!file) return;
+    const storedPersona = document.cookie
+      .split("; ")
+      .find((item) => item.startsWith(`${PERSONA_COOKIE}=`));
+    const persona = storedPersona
+      ? decodeURIComponent(storedPersona.split("=")[1])
+      : DEFAULT_PERSONA_HANDLE;
     setStatus("Uploading…");
     try {
       const result = await api.uploadTranscript(file, persona);
@@ -32,13 +37,6 @@ export default function UploadPage() {
         version — it never overwrites.
       </p>
       <form onSubmit={onSubmit} className="space-y-3">
-        <input
-          type="text"
-          value={persona}
-          onChange={(e) => setPersona(e.target.value)}
-          placeholder="Persona (user id)"
-          className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm dark:border-slate-800 dark:bg-transparent"
-        />
         <input type="file" name="file" accept=".txt,.md" required className="text-sm" />
         <button
           type="submit"

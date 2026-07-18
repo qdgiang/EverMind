@@ -14,6 +14,7 @@ import json
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Callable
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -31,7 +32,7 @@ class ReplayConnector:
         self.session = session
 
     def replay(self, corpus_path: Path, *, channel_group_ids: dict[str, int],
-               pace_ms: int = 0) -> int:
+               pace_ms: int = 0, on_message: Callable[[int], None] | None = None) -> int:
         count = 0
         with open(corpus_path, encoding="utf-8") as f:
             for line in f:
@@ -42,6 +43,8 @@ class ReplayConnector:
                 if self._already_ingested(row["raw_ref"]):
                     continue  # idempotent re-run
                 self._insert_message(row, channel_group_ids)
+                if on_message is not None:
+                    on_message(_parse_message_id(row["id"]))
                 count += 1
                 if pace_ms:
                     time.sleep(pace_ms / 1000)
@@ -84,6 +87,7 @@ def main() -> None:
 
     from evermind.config import settings
     from evermind.db.session import SessionLocal
+    from evermind.ingestion.service import IngestionService
     from evermind.org.seed import load_org_seed
 
     corpus = Path(sys.argv[1] if len(sys.argv) > 1 else "../data-v2/corpus.jsonl")
@@ -97,8 +101,12 @@ def main() -> None:
             for group in org_data.get("chat_groups", [])
             if group.get("channel_name")
         }
+        # The CLI is the composition root, so it may hand persisted source
+        # messages to ingestion without giving the connector a domain dependency.
+        ingestion = IngestionService(session)
         count = ReplayConnector(session).replay(
             corpus, channel_group_ids=channel_map, pace_ms=settings.replay_pace_ms,
+            on_message=ingestion.apply_markers,
         )
         session.commit()
     print(f"replayed {count} new messages from {corpus} (channels: {sorted(channel_map)})")

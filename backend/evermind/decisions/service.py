@@ -105,7 +105,7 @@ class DecisionsService:
 
     # ══════════════════════════════════════════════════════════ entrypoint
 
-    def handle(self, command: Command) -> dict:
+    def handle(self, command: Command, *, commit: bool = True) -> dict:
         """The one write path (D3). Returns the command outcome — also the shape
         stored in `processed_commands.outcome` so retries replay it [EVM-021]."""
         command_id = str(command.client_command_id)
@@ -120,7 +120,10 @@ class DecisionsService:
                 received_at=_utcnow(),
                 outcome=outcome,
             ))
-            self.session.commit()
+            if commit:
+                self.session.commit()
+            else:
+                self.session.flush()
         except Exception:
             self.session.rollback()
             raise
@@ -345,8 +348,10 @@ class DecisionsService:
 
         recorded_at = _utcnow()
         ts = _as_utc(cmd.ts) or recorded_at
-        if ts > recorded_at + timedelta(days=1):
-            # impossible chronology -> triage, never a silent write [EVM-012]
+        if cmd.created_from is CreatedFrom.LLM and ts > recorded_at + timedelta(days=1):
+            # A model cannot assert an event substantially after it was recorded.
+            # Directly cited marker events may be replayed from a recorded demo whose
+            # logical event clock is later than this machine's wall clock.
             self._emit("triage_raised", "command", 0,
                        {"reason": "impossible_chronology", "ts": _iso(ts),
                         "recorded_at": _iso(recorded_at),

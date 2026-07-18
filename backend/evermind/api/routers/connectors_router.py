@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from evermind.api.deps import get_session, persona_user_id
 from evermind.connectors.health import CaptureHealthService
 from evermind.connectors.transcript import TranscriptConnector, UnsupportedTranscriptType
+from evermind.ingestion.service import IngestionService
 
 router = APIRouter(tags=["connectors"])
 
@@ -31,4 +32,6 @@ async def upload_transcript(
         )
     except UnsupportedTranscriptType as exc:
         raise HTTPException(status_code=415, detail=str(exc)) from exc
-    return {"upload_id": upload_id}
+    outcomes = IngestionService(session).on_transcript_uploaded(upload_id)
+    session.commit()
+    return {"upload_id": upload_id, "outcomes": outcomes}

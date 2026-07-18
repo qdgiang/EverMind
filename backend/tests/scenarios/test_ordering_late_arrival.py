@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from evermind.contracts.enums import DecisionStatus
+from evermind.contracts.enums import CreatedFrom, DecisionStatus
 from evermind.decisions.models import Decision
 
 
@@ -64,6 +64,6 @@ def test_impossible_chronology_goes_to_triage(service, org_ids, mk, db_session):
     linh = org_ids["users"]["linh"]
     outcome = service.handle(mk.propose(
         linh, [mk.op_set("task:1", "attr:venue", "moon")],
-        ts=mk.now() + timedelta(days=30)))
+        ts=mk.now() + timedelta(days=30), created_from=CreatedFrom.LLM))
     assert outcome["status"] == "triage"
     assert db_session.query(Decision).count() == 0

@@ -13,6 +13,7 @@ from evermind.tasks.fold import TASK_FIELD_FACETS
 from evermind.tasks.models import (
     Task, TaskAssignment, TaskDecisionLog, TaskDependency, TaskTeam, TaskUpdate,
 )
+from evermind.contracts.ports import TaskView
 
 
 class TasksService:
@@ -21,6 +22,24 @@ class TasksService:
 
     def get_task(self, task_id: int) -> Task | None:
         return self.session.get(Task, task_id)
+
+    def get_task_view(self, task_id: int) -> TaskView | None:
+        """Read-only authority port for the decisions gateway."""
+        task = self.session.get(Task, task_id)
+        if task is None:
+            return None
+        return TaskView(
+            id=task.id,
+            project_id=task.project_id,
+            status=task.status,
+            team_ids=list(self.session.scalars(
+                select(TaskTeam.team_id).where(TaskTeam.task_id == task_id)
+            )),
+            pic_user_ids=list(self.session.scalars(
+                select(TaskAssignment.user_id).where(TaskAssignment.task_id == task_id)
+            )),
+            merged_into=task.merged_into,
+        )
 
     def dependencies_of(self, task_id: int) -> list[TaskDependency]:
         """TSK-3 — predecessor/successor edges for radar + dependency lamps."""
