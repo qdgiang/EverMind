@@ -6,7 +6,7 @@ through `org.service` — never these tables directly (architecture.md import ru
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import ForeignKey, JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
@@ -21,7 +21,7 @@ class Project(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     kind: Mapped[ProjectKind]  # [D4] explicit, not inferred from end_date
-    end_date: Mapped[datetime | None]
+    end_date: Mapped[date | None]
     status: Mapped[ProjectStatus] = mapped_column(default=ProjectStatus.ACTIVE)
 
 
