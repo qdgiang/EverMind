@@ -248,12 +248,12 @@ duplicates by `raw_ref`. Nothing is double-captured.
 
 ## 9 · LLM extraction (ING) — decisions/tasks from plain chat
 
-Every `EXTRACTION_INTERVAL_MIN` (default 5, `0` = off) the scheduler cuts a
+Every `EXTRACTION_INTERVAL_SEC` (30, `0` = off) the scheduler cuts a
 window per **live-platform group** (telegram; the seeded replay corpus is
 deliberately excluded from the automatic beat): up to `EXTRACTION_BATCH_SIZE`
-(50) unprocessed messages, but only once the newest one is
-`EXTRACTION_SETTLE_MIN` (2) minutes old — an actively-flowing conversation is
-never cut mid-thought. The window goes to the configured LLM (`AI_BASE_URL` /
+(20) unprocessed messages, but only once the newest one is
+`EXTRACTION_SETTLE_SEC` (120) seconds old — an actively-flowing conversation
+is never cut mid-thought. The window goes to the configured LLM (`AI_BASE_URL` /
 `AI_MODEL` — DeepSeek) with org context (members, open tasks, party aliases);
 extracted candidates enter through the SAME command gateway as everything
 else: confidence < `CONFIDENCE_TAU` (0.8) ⇒ born proposed, and the authority

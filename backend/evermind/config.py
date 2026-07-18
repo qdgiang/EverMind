@@ -14,11 +14,11 @@ class Settings(BaseSettings):
     ai_api_key: str = ""
 
     extraction_batch_size: int = 25  # max messages per extraction window
-    # ING beat cadence: extract every N minutes (0 disables); a window is only
-    # cut once the newest pending message is at least SETTLE_MIN old, so an
+    # ING beat cadence in SECONDS (0 disables); a window is only cut once the
+    # newest pending message is at least SETTLE_SEC old, so an
     # actively-flowing conversation is never split mid-thought.
-    extraction_interval_min: int = 5
-    extraction_settle_min: int = 2
+    extraction_interval_sec: int = 30
+    extraction_settle_sec: int = 120
     confidence_tau: float = 0.8
     org_timezone: str = "Asia/Ho_Chi_Minh"
 

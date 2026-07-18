@@ -1,7 +1,7 @@
 """Owner: A. Manual extraction trigger — the demo's "extract now" button.
 
 `POST /ingestion/extract` runs the exact beat the scheduler runs every
-`EXTRACTION_INTERVAL_MIN`; `?group_id=` narrows to one group. Job logic lives
+`EXTRACTION_INTERVAL_SEC`; `?group_id=` narrows to one group. Job logic lives
 in `ingestion.service` (this router, like the scheduler, only calls the port).
 """
 from __future__ import annotations

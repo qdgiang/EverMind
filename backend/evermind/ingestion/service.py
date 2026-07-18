@@ -83,7 +83,7 @@ class IngestionService:
         if not pending:
             return None
         newest = _aware(pending[-1].ts)
-        if now - newest < timedelta(minutes=settings.extraction_settle_min):
+        if now - newest < timedelta(seconds=settings.extraction_settle_sec):
             # chat is still flowing — never cut a conversation mid-thought
             return {"group_id": group_id, "status": "settling",
                     "pending": len(pending)}

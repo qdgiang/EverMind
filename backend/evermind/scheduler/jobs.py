@@ -42,7 +42,7 @@ def build_scheduler(session_factory) -> BackgroundScheduler:
 
     def extraction_job() -> None:
         """ING-2..5 — the periodic LLM extraction beat: window + extract every
-        chat group's pending messages (EXTRACTION_INTERVAL_MIN; the same call
+        chat group's pending messages (EXTRACTION_INTERVAL_SEC; the same call
         `POST /ingestion/extract` triggers manually)."""
         from evermind.ingestion.service import IngestionService
         with session_factory() as session:
@@ -51,7 +51,7 @@ def build_scheduler(session_factory) -> BackgroundScheduler:
 
     scheduler.add_job(radar_job, CronTrigger(hour=6))
     scheduler.add_job(capture_self_check_job, CronTrigger(hour="*"))
-    if settings.extraction_interval_min > 0:
+    if settings.extraction_interval_sec > 0:
         scheduler.add_job(extraction_job,
-                          IntervalTrigger(minutes=settings.extraction_interval_min))
+                          IntervalTrigger(seconds=settings.extraction_interval_sec))
     return scheduler
