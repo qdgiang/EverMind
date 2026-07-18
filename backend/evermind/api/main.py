@@ -4,10 +4,9 @@ front door (kept literal on purpose: no business logic may grow here).
 """
 from __future__ import annotations
 
-from fastapi import Depends, FastAPI
-from sqlalchemy.orm import Session
+from fastapi import Depends, FastAPI, HTTPException
 
-from evermind.api.deps import get_session, persona
+from evermind.api.deps import decisions_service, persona
 from evermind.api.routers import (
     connectors_router,
     decisions_router,
@@ -38,9 +37,17 @@ def healthz():
 
 @app.post("/commands")
 def post_command(
-    command: Command, session: Session = Depends(get_session), who: str = Depends(persona)
+    command: Command,
+    service: DecisionsService = Depends(decisions_service),
+    who: str = Depends(persona),
 ):
     """The single write path for every surface (D3). Validates + persona-stamps,
     hands straight to the domain — see architecture.md §The write pipeline.
+    [EVM-021]: a `version_conflict` outcome renders as HTTP 409 + diff card.
     """
-    return DecisionsService(session).handle(command)
+    if command.persona != who:
+        command = command.model_copy(update={"persona": who})  # persona-stamp
+    outcome = service.handle(command)
+    if outcome.get("status") == "version_conflict":
+        raise HTTPException(status_code=409, detail=outcome)
+    return outcome

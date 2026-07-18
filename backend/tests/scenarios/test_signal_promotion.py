@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
 from sqlalchemy.orm import Session
 
 from evermind.contracts.enums import SignalKind
@@ -102,14 +101,18 @@ def test_try_promote_returns_a_decision_when_eligible(db_session: Session):
 
 
 # ---------------------------------------------------------------------------
-# SIG-2 — party resolution (wiring only: org.service isn't built yet, Lane A)
+# SIG-2 — party resolution (real match/no-match: org.service landed with PR #42)
 # ---------------------------------------------------------------------------
 
 
-def test_resolve_waiting_on_reaches_org_service(db_session: Session):
-    """Confirms the wiring, not the match logic — `org.service.match_party_alias`
-    is Lane A's job and doesn't exist yet. Once it does, this test should be
-    replaced with real match/no-match assertions.
-    """
-    with pytest.raises(NotImplementedError):
-        SignalsService(db_session).resolve_waiting_on("chi Yen")
+def test_resolve_waiting_on_matches_a_seeded_party_alias(db_session: Session, org_ids):
+    """G22/SIG-2 — "đang chờ Kim Long" resolves to the vendor party via alias
+    containment (match logic: org.service.match_party_alias, Lane A)."""
+    resolved = SignalsService(db_session).resolve_waiting_on("đang chờ Kim Long báo giá")
+    assert resolved == {"party_id": org_ids["parties"]["PTY-KL"]}
+
+
+def test_resolve_waiting_on_keeps_free_text_when_no_party_matches(db_session: Session, org_ids):
+    """G22 — no forced match: unknown counterparties stay free text."""
+    resolved = SignalsService(db_session).resolve_waiting_on("bên giao hàng mới")
+    assert resolved == {"waiting_on_text": "bên giao hàng mới"}

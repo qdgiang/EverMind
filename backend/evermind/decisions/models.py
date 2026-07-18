@@ -79,7 +79,36 @@ class EffectiveUnit(Base):
     __tablename__ = "effective_units"
 
     unit_key: Mapped[str] = mapped_column(primary_key=True)
-    decision_id: Mapped[int] = mapped_column(ForeignKey("decisions.id"), unique=True)
+    # NOT unique: a multi-op decision occupies several units at once [EVM-003];
+    # uniqueness-per-unit is the PK
+    decision_id: Mapped[int] = mapped_column(ForeignKey("decisions.id"), index=True)
+
+
+class DecisionUnit(Base):
+    """Every unit a decision's ops touch, proposed or effective (decisions-
+    internal index; added in migration 0002). `effective_units` answers "who
+    occupies this unit"; this table answers "which decisions touch it" — the
+    sweep (G11/G12), pending-merge (G49), change-of-mind withdrawal (#17b), and
+    effect-window overlap checks [EVM-004] all query it.
+    """
+
+    __tablename__ = "decision_units"
+
+    decision_id: Mapped[int] = mapped_column(ForeignKey("decisions.id"), primary_key=True)
+    unit_key: Mapped[str] = mapped_column(primary_key=True)
+
+
+class IdAllocation(Base):
+    """Task-id allocator for NEW_TASK decisions (migration 0002). The tasks
+    table is B's projection — its rows are *created by the fold* from
+    decision_effective events, so the task identity must be minted on the write
+    side (here) and carried in the event payload.
+    """
+
+    __tablename__ = "id_allocations"
+
+    name: Mapped[str] = mapped_column(primary_key=True)
+    next_id: Mapped[int] = mapped_column(default=1)
 
 
 class ProcessedCommand(Base):

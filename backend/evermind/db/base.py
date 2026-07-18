@@ -3,17 +3,21 @@
 """
 from datetime import datetime
 
-from sqlalchemy import DateTime
+from sqlalchemy import JSON, DateTime
 from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
-    # architecture.md/G54: "storage stays timezone-aware UTC" for every
-    # timestamp in the schema. Centralized here (rather than
-    # `mapped_column(DateTime(timezone=True))` repeated on every one of the
-    # ~25 `Mapped[datetime]` columns across modules) so no module owner has to
-    # remember it column-by-column — every `Mapped[datetime]` gets TIMESTAMPTZ
-    # for free. Postgres otherwise silently strips tzinfo on round-trip
-    # (TIMESTAMP WITHOUT TIME ZONE), which breaks any `now - row.ts` arithmetic
-    # the moment `now` is timezone-aware (as `datetime.now(timezone.utc)` is).
-    type_annotation_map = {datetime: DateTime(timezone=True)}
+    type_annotation_map = {
+        # (PR #41, B) architecture.md/G54: "storage stays timezone-aware UTC" for
+        # every timestamp — every `Mapped[datetime]` gets TIMESTAMPTZ for free.
+        # Postgres otherwise silently strips tzinfo on round-trip, which breaks
+        # `now - row.ts` arithmetic the moment `now` is timezone-aware.
+        datetime: DateTime(timezone=True),
+        # (PR #42, A) bare `Mapped[dict]` / `Mapped[list]` annotations map to JSON
+        # columns — keeps every module's models importable without boilerplate.
+        dict: JSON,
+        list: JSON,
+        list[dict]: JSON,
+        list[str]: JSON,
+    }
