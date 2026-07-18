@@ -37,14 +37,22 @@ class SeedSummary:
     parties: int
 
 
+def _advance_sequence_past_max(session: Session, table_name: str) -> None:
+    max_id = session.execute(
+        text(f"SELECT COALESCE(MAX(id), 0) FROM {table_name}")
+    ).scalar_one()
+    while (
+        session.execute(
+            text(f"SELECT nextval(pg_get_serial_sequence('{table_name}', 'id'))")
+        ).scalar_one()
+        <= max_id
+    ):
+        pass
+
+
 def _advance_sequences(session: Session) -> None:
     for table_name in _SEQUENCE_TABLES:
-        session.execute(
-            text(
-                f"SELECT setval(pg_get_serial_sequence('{table_name}', 'id'), "
-                f"(SELECT MAX(id) FROM {table_name}), true)"
-            )
-        )
+        _advance_sequence_past_max(session, table_name)
 
 
 def _preflight_identities(session: Session, seed: OrgSeed) -> set[str]:
@@ -74,13 +82,7 @@ def _add_missing_identities(
 ) -> None:
     if not missing_platform_user_ids:
         return
-    session.execute(
-        text(
-            "SELECT setval(pg_get_serial_sequence('user_identities', 'id'), "
-            "COALESCE((SELECT MAX(id) FROM user_identities), 1), "
-            "EXISTS (SELECT 1 FROM user_identities))"
-        )
-    )
+    _advance_sequence_past_max(session, "user_identities")
     for user in seed.users:
         if user.platform_user_id in missing_platform_user_ids:
             session.add(

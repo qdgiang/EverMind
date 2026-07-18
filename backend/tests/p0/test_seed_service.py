@@ -4,7 +4,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
 from evermind.contracts.enums import ProjectKind, ProjectStatus
@@ -14,6 +14,12 @@ from evermind.org.seed_schema import load_org_seed
 from evermind.org.seed_service import seed_org
 
 ORG_FIXTURE = Path(__file__).resolve().parents[3] / "data-v2" / "org.json"
+
+
+def _next_project_id(db_session: Session) -> int:
+    return db_session.execute(
+        text("SELECT nextval(pg_get_serial_sequence('projects', 'id'))")
+    ).scalar_one()
 
 
 def test_seed_supports_sessions_without_autoflush(db_session: Session):
@@ -107,6 +113,49 @@ def test_seed_advances_surrogate_id_sequences(db_session: Session):
     db_session.add(project)
     db_session.flush()
     assert project.id > max(PROJECT_IDS.values())
+
+
+def test_seed_never_rewinds_a_sequence_ahead_of_table_rows(db_session: Session):
+    seed = load_org_seed(ORG_FIXTURE)
+    seed_org(db_session, seed)
+    table_max = db_session.execute(text("SELECT MAX(id) FROM projects")).scalar_one()
+    prior_allocation = _next_project_id(db_session)
+    while prior_allocation <= table_max:
+        prior_allocation = _next_project_id(db_session)
+
+    seed_org(db_session, seed)
+    project = Project(
+        name="Created after ahead allocation",
+        kind=ProjectKind.PROGRAM,
+        end_date=None,
+        status=ProjectStatus.ACTIVE,
+    )
+    db_session.add(project)
+    db_session.flush()
+
+    assert project.id > prior_allocation
+
+
+def test_seed_does_not_reuse_sequence_value_consumed_in_rolled_back_savepoint(
+    db_session: Session,
+):
+    seed = load_org_seed(ORG_FIXTURE)
+    seed_org(db_session, seed)
+    savepoint = db_session.begin_nested()
+    rolled_back_allocation = _next_project_id(db_session)
+    savepoint.rollback()
+
+    seed_org(db_session, seed)
+    project = Project(
+        name="Created after rolled-back allocation",
+        kind=ProjectKind.PROGRAM,
+        end_date=None,
+        status=ProjectStatus.ACTIVE,
+    )
+    db_session.add(project)
+    db_session.flush()
+
+    assert project.id > rolled_back_allocation
 
 
 def test_seed_preserves_unrelated_low_id_identity(db_session: Session):
