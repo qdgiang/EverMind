@@ -6,11 +6,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api-client";
-import { personaFromDocument } from "@/lib/persona-client";
 import type { Decision } from "@/lib/types";
 import {
-  WsBundle, WsEvidence, WsTask, decisionFacet, decisionLabel,
-  decisionTaskIds, messageLabel, shortDate, statusLabel, taskLabel,
+  LANE_LABEL, WsBundle, WsEvidence, WsMember, WsTask, canActOnProposal,
+  decisionFacet, decisionLabel, decisionTaskIds, decisionTeamIds,
+  isCoordinator, messageLabel, shortDate, statusLabel, taskLabel,
+  taskUpdateLane,
 } from "@/lib/workspace";
 import { Icon } from "./icons";
 
@@ -18,6 +19,7 @@ const STATUS_CHOICES = ["todo", "doing", "blocked", "done"];
 
 interface Common {
   bundle: WsBundle;
+  personaHandle: string;
   showInactive: boolean;
   onToggleInactive: (v: boolean) => void;
   onOpenTask: (id: number) => void;
@@ -26,9 +28,8 @@ interface Common {
   onCloseDecision: () => void;
 }
 
-function personaUserId(bundle: WsBundle): number | undefined {
-  const handle = personaFromDocument();
-  return bundle.members.find((m) => m.handle === handle)?.id;
+function me(bundle: WsBundle, personaHandle: string): WsMember | undefined {
+  return bundle.members.find((m) => m.handle === personaHandle);
 }
 
 function memberName(bundle: WsBundle, userId: number | null | undefined): string {
@@ -85,11 +86,14 @@ function DecisionCard({ d, onOpen }: { d: Decision; onOpen: (id: number) => void
 }
 
 export function TaskInspector({
-  task, bundle, showInactive, onToggleInactive, onOpenTask, onOpenDecision, onOpenEvidence,
+  task, bundle, personaHandle, showInactive, onToggleInactive,
+  onOpenTask, onOpenDecision, onOpenEvidence,
 }: Common & { task: WsTask }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const actor = me(bundle, personaHandle);
+  const lane = taskUpdateLane(actor, task);
 
   const lineage = bundle.decisions.filter((d) => decisionTaskIds(d).includes(task.id));
   const visible = showInactive ? lineage : lineage.filter((d) => d.status !== "superseded" && d.status !== "rejected");
@@ -103,13 +107,12 @@ export function TaskInspector({
   const pics = task.pics.map((id) => memberName(bundle, id));
 
   async function changeStatus(next: string) {
-    const uid = personaUserId(bundle);
-    if (uid === undefined || next === task.status) return;
+    if (actor === undefined || next === task.status) return;
     setBusy(true);
     setNote(null);
     try {
-      const outcome = await api.recordTaskStatus(personaFromDocument(), uid, task.id, next);
-      setNote(outcome.status === "applied" ? null : `→ ${outcome.status} (không phải PIC — cần PIC xác nhận)`);
+      const outcome = await api.recordTaskStatus(personaHandle, actor.id, task.id, next);
+      setNote(outcome.status === "applied" ? null : `→ ${outcome.status} (chờ PIC xác nhận)`);
       router.refresh();
     } catch (err) {
       setNote((err as Error).message.slice(0, 120));
@@ -153,6 +156,7 @@ export function TaskInspector({
           {team && <span className="source-badge">{team.name}</span>}
           {pics[0] && <span className="source-badge">{pics[0]}</span>}
         </div>
+        <span className="lane-note">{LANE_LABEL[lane]}</span>
         {note && <span className="write-note">{note}</span>}
       </div>
       <div className="inspector-body">
@@ -255,11 +259,17 @@ export function TaskInspector({
 }
 
 export function DecisionInspector({
-  decision, bundle, onOpenTask, onOpenDecision, onOpenEvidence, onCloseDecision,
+  decision, bundle, personaHandle, onOpenTask, onOpenDecision, onOpenEvidence, onCloseDecision,
 }: Common & { decision: Decision }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const actor = me(bundle, personaHandle);
+  const mayAct = canActOnProposal(actor, decision, bundle.tasks);
+  // who CAN approve — the coordinator plus lead+ of the governing teams
+  const eligible = bundle.members.filter((m) =>
+    isCoordinator(m)
+    || decisionTeamIds(decision, bundle.tasks).some((t) => m.leads_team_ids.includes(t)));
 
   const statusText = decision.status.charAt(0).toUpperCase() + decision.status.slice(1);
   const affected = decisionTaskIds(decision);
@@ -272,14 +282,13 @@ export function DecisionInspector({
       : null;
 
   async function act(kind: "approve" | "reject") {
-    const uid = personaUserId(bundle);
-    if (uid === undefined) return;
+    if (actor === undefined) return;
     setBusy(true);
     setNote(null);
     try {
       const outcome = kind === "approve"
-        ? await api.approveProposal(personaFromDocument(), uid, decision.id)
-        : await api.rejectProposal(personaFromDocument(), uid, decision.id);
+        ? await api.approveProposal(personaHandle, actor.id, decision.id)
+        : await api.rejectProposal(personaHandle, actor.id, decision.id);
       if (!["effective", "rejected"].includes(outcome.status)) setNote(`→ ${outcome.status}`);
       router.refresh();
     } catch (err) {
@@ -306,7 +315,7 @@ export function DecisionInspector({
           <span className="source-badge">{decisionFacet(decision)}</span>
           <span className="source-badge">{affected.length} affected task{affected.length === 1 ? "" : "s"}</span>
         </div>
-        {decision.status === "proposed" && (
+        {decision.status === "proposed" && (mayAct ? (
           <div className="inspector-write-row">
             <button className="primary-button" disabled={busy} onClick={() => act("approve")}>
               <Icon name="check" /> Duyệt
@@ -315,7 +324,12 @@ export function DecisionInspector({
               Bỏ qua
             </button>
           </div>
-        )}
+        ) : (
+          <span className="lane-note">
+            Chờ duyệt bởi: {eligible.map((m) => m.name).join(", ") || "coordinator"}
+            {" "}(vai trò hiện tại của bạn không đủ thẩm quyền)
+          </span>
+        ))}
         {note && <span className="write-note">{note}</span>}
       </div>
       <div className="inspector-body">

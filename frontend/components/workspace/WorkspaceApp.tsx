@@ -27,13 +27,6 @@ const NAV = [
   { view: "radar", label: "Blocker radar", icon: "radar" },
 ];
 
-const TABS = [
-  { view: "knowledge", label: "Project knowledge" },
-  { view: "map", label: "Task & decision panels" },
-  { view: "decisions", label: "Decision log" },
-  { view: "evidence", label: "Evidence archive" },
-];
-
 export function WorkspaceApp({
   bundle, projects, personaHandle, initialView,
 }: {
@@ -142,7 +135,7 @@ export function WorkspaceApp({
     onOpenEvidence: openEvidence, onSetView: setView,
   };
   const inspectorProps = {
-    bundle, showInactive, onToggleInactive: setShowInactive,
+    bundle, personaHandle, showInactive, onToggleInactive: setShowInactive,
     onOpenTask: openTask, onOpenDecision: openDecision,
     onOpenEvidence: openEvidence, onCloseDecision: closeDecision,
   };
@@ -322,27 +315,6 @@ export function WorkspaceApp({
               <span className="metric-icon evidence"><Icon name="evidence" /></span>
               <div><strong>{bundle.counts.receipts}</strong><span>Receipts</span></div>
               <small>{bundle.counts.proposed} chờ duyệt</small>
-            </div>
-          </div>
-
-          <div className="view-toolbar">
-            <div className="view-tabs" role="tablist" aria-label="Project views">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.view}
-                  className={`view-tab ${view === tab.view ? "active" : ""}`}
-                  role="tab"
-                  aria-selected={view === tab.view}
-                  onClick={() => setView(tab.view)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-            <div className="toolbar-actions">
-              <button className="compact-button">
-                <span className="team-swatch"></span> {bundle.teams[0]?.name ?? "team"}
-              </button>
             </div>
           </div>
 

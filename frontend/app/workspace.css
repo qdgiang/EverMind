@@ -2385,3 +2385,10 @@ kbd {
 .bell-menu button { display: flex; width: 100%; gap: 8px; text-align: left; padding: 8px 10px; border: none; background: transparent; border-radius: var(--radius-sm); cursor: pointer; }
 .bell-menu button:hover { background: var(--paper); }
 .bell-empty { padding: 14px; color: var(--muted); font-size: 12.5px; text-align: center; }
+
+/* RBAC lane hints (TSK-2 lanes / approver gate) */
+.lane-note { display: block; margin-top: 8px; font-size: 11.5px; color: var(--ink-soft); }
+.decision-inspector-head .lane-note { color: var(--amber); }
+
+/* the in-page view tabs were removed (navigation lives in the sidebar only) */
+.page-content .workspace-grid { margin-top: 18px; }

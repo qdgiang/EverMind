@@ -143,6 +143,68 @@ export function fullDate(ts: string | null | undefined): string {
   });
 }
 
+// ── RBAC mirror of backend decisions/authority.py (DEC-4) ──────────────────
+// The gateway is the enforcer; these helpers only gate what the UI offers.
+// Rules: rank 3 = coordinator (everything) · rank 2 = lead+ over the teams in
+// leads_team_ids · rank 1 = member (propose only). Task updates (TSK-2):
+// PIC → auto-apply (G7) · authority → applies · anyone else → PIC confirm
+// card (G9) — every lane is legal, the label tells the actor which one fires.
+
+export function isCoordinator(m: WsMember | undefined): boolean {
+  return (m?.role_rank ?? 0) >= 3;
+}
+
+export function leadsTeam(m: WsMember | undefined, teamId: number): boolean {
+  if (!m) return false;
+  return isCoordinator(m) || m.leads_team_ids.includes(teamId);
+}
+
+/** Teams governing a decision's target: an existing task's owning teams, a
+ *  NEW_TASK proposal's `team add` ops (the task is unborn), or the team target
+ *  itself. Empty ⇒ project/apex scope (coordinator only). */
+export function decisionTeamIds(d: Decision, tasks: WsTask[]): number[] {
+  const [kind, raw] = d.scope_target.split(":");
+  if (kind === "team" && /^\d+$/.test(raw ?? "")) return [Number(raw)];
+  if (kind === "task" && /^\d+$/.test(raw ?? "")) {
+    const task = tasks.find((t) => t.id === Number(raw));
+    if (task && task.team_ids.length) return task.team_ids;
+    // unborn task: the proposal's own ops carry the destination team
+    return d.ops
+      .filter((op) => op.facet === "team" && typeof op.value === "number")
+      .map((op) => op.value as number);
+  }
+  return [];
+}
+
+/** Can this member approve/reject the proposal? (authority.py: coordinator, or
+ *  lead+ over a governing team; project scope needs the coordinator). */
+export function canActOnProposal(
+  m: WsMember | undefined, d: Decision, tasks: WsTask[],
+): boolean {
+  if (!m) return false;
+  if (isCoordinator(m)) return true;
+  if (d.scope === "project") return false;
+  const teams = decisionTeamIds(d, tasks);
+  return teams.some((teamId) => leadsTeam(m, teamId));
+}
+
+export type UpdateLane = "pic" | "authority" | "confirm";
+
+/** Which TSK-2 lane a status change from this member takes. */
+export function taskUpdateLane(m: WsMember | undefined, task: WsTask): UpdateLane {
+  if (m && task.pics.includes(m.id)) return "pic";
+  if (m && (isCoordinator(m) || task.team_ids.some((t) => leadsTeam(m, t)))) {
+    return "authority";
+  }
+  return "confirm";
+}
+
+export const LANE_LABEL: Record<UpdateLane, string> = {
+  pic: "bạn là PIC — áp dụng ngay",
+  authority: "bạn có thẩm quyền — áp dụng ngay",
+  confirm: "không phải PIC — sẽ gửi thẻ xác nhận cho PIC",
+};
+
 /** Task ids a decision touches: scope target + every op target. */
 export function decisionTaskIds(d: Decision): number[] {
   const ids = new Set<number>();
