@@ -79,7 +79,7 @@ class EffectiveUnit(Base):
     __tablename__ = "effective_units"
 
     unit_key: Mapped[str] = mapped_column(primary_key=True)
-    decision_id: Mapped[int] = mapped_column(ForeignKey("decisions.id"), unique=True)
+    decision_id: Mapped[int] = mapped_column(ForeignKey("decisions.id"))
 
 
 class ProcessedCommand(Base):
