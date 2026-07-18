@@ -60,6 +60,7 @@ def seed_org(session: Session, seed: OrgSeed) -> SeedSummary:
                 status=project.status,
             )
         )
+    session.flush()
 
     for team in seed.teams:
         session.merge(
@@ -69,6 +70,7 @@ def seed_org(session: Session, seed: OrgSeed) -> SeedSummary:
                 name=team.name,
             )
         )
+    session.flush()
 
     for group in seed.chat_groups:
         session.merge(

@@ -15,6 +15,15 @@ from evermind.org.seed_service import seed_org
 ORG_FIXTURE = Path(__file__).resolve().parents[3] / "data-v2" / "org.json"
 
 
+def test_seed_supports_sessions_without_autoflush(db_session: Session):
+    db_session.autoflush = False
+
+    summary = seed_org(db_session, load_org_seed(ORG_FIXTURE))
+
+    assert summary.users == 9
+    assert summary.memberships == 11
+
+
 def test_seed_is_idempotent_and_keeps_stable_relationships(db_session: Session):
     seed = load_org_seed(ORG_FIXTURE)
     first = seed_org(db_session, seed)
