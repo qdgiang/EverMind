@@ -215,11 +215,12 @@ joined — history/backfill is replay's job (CAP-2).
 3. Fill the placeholders in `data-v2/org.json` (the seed **skips** any value
    still starting with `FILL_ME`):
    - `G-LIVE.platform_chat_id` → the chat id from the log line.
-   - each demo member's `identities` entry → their Telegram **username without
-     the `@`** (the connector records the username when one exists, the numeric
-     user id otherwise — for members without a username, put the numeric id).
-     Senders with no identity row become **provisional users** (G44) joined to
-     TEAM-LIVE; the lead confirms them from the workspace.
+   - each demo member's `identities` entry → their **numeric Telegram user id**
+     (the load-bearing [D5] key — resolution prefers it because usernames are
+     mutable and may differ from what anyone remembers; a username entry is an
+     optional extra). Senders with no identity row become **provisional users**
+     (G44) joined to the group's team; the lead confirms them from the
+     workspace.
 
 4. Re-copy + re-seed (idempotent):
 

@@ -113,6 +113,7 @@ class TelegramConnector:
             source="telegram",
             group_id=self._resolve_group_id(msg["chat"]),
             author_identity=from_user.get("username") or str(from_user.get("id", "unknown")),
+            author_platform_id=str(from_user["id"]) if "id" in from_user else None,
             ts=datetime.fromtimestamp(msg["date"], tz=timezone.utc),
             text=msg.get("text", ""),
             thread_ref=self._synthetic_id(msg["reply_to_message"])

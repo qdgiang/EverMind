@@ -39,7 +39,10 @@ class PlatformAdapter:
     connector_scope: str = CONNECTOR_SCOPE
 
     def identity_key(self, message: Message) -> str:
-        return message.author_identity
+        # [D5] prefer the stable numeric platform id — usernames are mutable
+        # display keys and may differ from what got seeded (seen live: a user
+        # given as "minhpq" whose real telegram username is "pqminh").
+        return message.author_platform_id or message.author_identity
 
     def display_name(self, message: Message) -> str:
         return message.author_identity

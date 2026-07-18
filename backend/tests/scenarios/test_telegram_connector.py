@@ -49,6 +49,7 @@ def test_poll_updates_stores_a_message_and_advances_offset(db_session: Session):
     messages = db_session.scalars(select(Message).where(Message.source == "telegram")).all()
     assert len(messages) == 1
     assert messages[0].author_identity == "linh"
+    assert messages[0].author_platform_id == "111"  # [D5] the stable resolution key
     assert messages[0].group_id == 7
     assert messages[0].text == "chào cả nhà"
 
@@ -81,12 +82,14 @@ def test_poll_updates_resolves_reply_to_message(db_session: Session):
 
 
 def test_poll_updates_tracks_membership_join_and_leave(db_session: Session):
+    # user id deliberately > int32: modern telegram ids overflow INTEGER —
+    # regression for the live NumericValueOutOfRange crash (BigInteger column)
     http = FakeHttpClient({
         "ok": True,
         "result": [{
             "update_id": 1, "my_chat_member": {
                 "chat": {"id": -1001}, "date": 1735689600,
-                "new_chat_member": {"user": {"id": 999, "username": "khoa"}, "status": "member"},
+                "new_chat_member": {"user": {"id": 6837466799, "username": "khoa"}, "status": "member"},
             },
         }],
     })
@@ -94,7 +97,7 @@ def test_poll_updates_tracks_membership_join_and_leave(db_session: Session):
                                    chat_group_ids={"-1001": 7})
     connector.poll_updates()
 
-    member = db_session.get(GroupMember, {"group_id": 7, "user_id": 999})
+    member = db_session.get(GroupMember, {"group_id": 7, "user_id": 6837466799})
     assert member is not None
     assert member.left_at is None
 
@@ -103,7 +106,7 @@ def test_poll_updates_tracks_membership_join_and_leave(db_session: Session):
         "result": [{
             "update_id": 2, "my_chat_member": {
                 "chat": {"id": -1001}, "date": 1735689700,
-                "new_chat_member": {"user": {"id": 999, "username": "khoa"}, "status": "left"},
+                "new_chat_member": {"user": {"id": 6837466799, "username": "khoa"}, "status": "left"},
             },
         }],
     })
