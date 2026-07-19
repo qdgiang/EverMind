@@ -32,6 +32,9 @@ class Signal(Base):
     # Immutable capture receipts.  The anchor remains message_id for the
     # identity key, while promotions retain every cited revision.
     evidence: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    # Provenance must survive beyond the event payload: the daily stale-signal
+    # sweep has no event to recover the reporter from.
+    reported_by_user_id: Mapped[int | None]
     ts: Mapped[datetime]
     window_id: Mapped[int]
     status: Mapped[SignalStatus] = mapped_column(default=SignalStatus.OPEN)

@@ -85,6 +85,7 @@ class SignalsConsumer:
                 window_id=p.get("window_id") or 0,
                 evidence=p.get("evidence") or None,
                 waiting_on_text=p.get("waiting_on_text"),
+                reported_by_user_id=p.get("reported_by_user_id"),
             )
         self.promote_eligible(
             now=event.ts,
@@ -92,7 +93,6 @@ class SignalsConsumer:
             topic=p["normalized_topic"],
             project_id=p["project_id"],
             party_id=p.get("party_id"),
-            reporter=p.get("reported_by_user_id"),
         )
 
     def promote_eligible(
@@ -103,7 +103,6 @@ class SignalsConsumer:
         topic: str | None = None,
         project_id: int | None = None,
         party_id: int | None = None,
-        reporter: int | None = None,
     ) -> int:
         now = now or datetime.now(timezone.utc)
         service = SignalsService(self.session)
@@ -130,8 +129,14 @@ class SignalsConsumer:
             task = TasksService(self.session).get_task(tid)
             if task is None:
                 continue
-            pics = TasksService(self.session).pics_of(tid)
-            actor = reporter or (pics[0] if pics else None)
+            # Scheduled promotion has no source event, so it must use the
+            # reporter persisted with the evidence rather than a task PIC.
+            # A signal without a known reporter cannot safely create a proposal.
+            actor = next(
+                (signal.reported_by_user_id for signal in signals
+                 if signal.reported_by_user_id is not None),
+                None,
+            )
             if actor is None:
                 continue
             receipts = {
