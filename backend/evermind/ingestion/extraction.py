@@ -130,6 +130,7 @@ def candidate_to_command(
             signal_kind="blocker", project_id=group.project_id,
             task_id=candidate.task_id, normalized_topic=candidate.normalized_topic or "",
             excerpt=candidate.description,
+            waiting_on_text=candidate.waiting_on_text,
             evidence=[CitationSpec(message_id=mid, kind=CitationKind.EVIDENCE,
                                    rev_at_capture=messages_by_id[mid].current_rev)
                       for mid in candidate.evidence_message_ids],

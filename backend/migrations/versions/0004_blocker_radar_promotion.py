@@ -16,12 +16,14 @@ def upgrade() -> None:
     op.add_column("signals", sa.Column("evidence", sa.JSON(), nullable=False,
                                        server_default=sa.text("'[]'")))
     op.add_column("signals", sa.Column("promoted_decision_id", sa.Integer(), nullable=True))
+    op.add_column("signals", sa.Column("waiting_on_text", sa.String(), nullable=True))
     op.add_column("decisions", sa.Column("review_reason", sa.String(), nullable=True))
     op.add_column("decisions", sa.Column("reported_by_user_id", sa.Integer(), nullable=True))
 
 
 def downgrade() -> None:
     op.drop_column("signals", "promoted_decision_id")
+    op.drop_column("signals", "waiting_on_text")
     op.drop_column("signals", "evidence")
     op.drop_column("decisions", "reported_by_user_id")
     op.drop_column("decisions", "review_reason")

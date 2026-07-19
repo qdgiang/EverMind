@@ -27,6 +27,7 @@ class Signal(Base):
     # (task?/party? are nullable dimensions of the same key).
     normalized_topic: Mapped[str]
     excerpt: Mapped[str]
+    waiting_on_text: Mapped[str | None]
     message_id: Mapped[int]
     # Immutable capture receipts.  The anchor remains message_id for the
     # identity key, while promotions retain every cited revision.

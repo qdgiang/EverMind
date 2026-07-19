@@ -21,7 +21,8 @@ class SignalsService:
 
     def emit(self, *, kind: SignalKind, project_id: int, normalized_topic: str, excerpt: str,
               message_id: int, ts: datetime, window_id: int, task_id: int | None = None,
-              party_id: int | None = None, evidence: list[dict] | None = None) -> int:
+              party_id: int | None = None, evidence: list[dict] | None = None,
+              waiting_on_text: str | None = None) -> int:
         """SIG-1 — append-only ledger row keyed on the [EVM-013] identity
         (project, task?, party?, normalized_topic). Does NOT auto-promote —
         "one mention never promotes" (design-v2.md §Signals). Returns the new
@@ -30,6 +31,7 @@ class SignalsService:
         signal = Signal(
             kind=kind, project_id=project_id, task_id=task_id, party_id=party_id,
             normalized_topic=normalized_topic, excerpt=excerpt, message_id=message_id,
+            waiting_on_text=waiting_on_text,
             evidence=evidence or [{"message_id": message_id, "rev_at_capture": 1}],
             ts=ts, window_id=window_id, status=SignalStatus.OPEN,
         )

@@ -439,12 +439,9 @@ export function EvidenceView(props: ViewProps) {
 
 export function RadarView(props: ViewProps) {
   const { bundle, onOpenTask } = props;
-  const blocked = bundle.tasks.filter((t) => t.status === "blocked");
-  const byParty = blocked.reduce<Record<string, WsTask[]>>((acc, t) => {
-    const key = t.blocked_waiting_on_text ?? (t.blocked_waiting_on_party_id != null ? `party #${t.blocked_waiting_on_party_id}` : "không rõ");
-    (acc[key] ||= []).push(t);
-    return acc;
-  }, {});
+  const blocked = bundle.radar?.confirmed_blockers ?? [];
+  const lamps = bundle.radar?.lamps ?? [];
+  const labels: Record<string, string> = { overdue: "Quá hạn", stale: "Im lặng lâu", idle: "Chưa bắt đầu", late_start: "Bắt đầu muộn", contested: "Có tranh chấp" };
   return (
     <div className="list-view">
       <div className="list-view-header">
@@ -459,19 +456,23 @@ export function RadarView(props: ViewProps) {
         </div>
       ) : (
         <div className="radar-groups">
-          {Object.entries(byParty).map(([party, tasks]) => (
-            <div className="radar-party" key={party}>
-              <h3><i></i>{party}</h3>
-              {tasks.map((t) => (
-                <button key={t.id} onClick={() => onOpenTask(t.id)}>
+          <h3>Confirmed blockers</h3>
+          {blocked.map((t) => (
+            <div className="radar-party" key={t.task_id}>
+              <h3><i></i>{t.waiting_on.name ?? t.waiting_on.text ?? "không rõ"}</h3>
+              <button onClick={() => onOpenTask(t.task_id)}>
                   <span>
-                    <strong>{taskLabel(t.id)} · {t.description}</strong>
-                    <small>blocked từ {shortDate(t.blocked_since)} · PIC {personName(bundle, t.pics[0])}</small>
+                    <strong>{taskLabel(t.task_id)} · {t.description}</strong>
+                    <small>blocked từ {shortDate(t.since)}</small>
                   </span>
-                </button>
-              ))}
+              </button>
             </div>
           ))}
+          <h3>Needs attention</h3>
+          {lamps.length === 0 ? <div className="radar-empty">Không có tín hiệu cần chú ý.</div> : lamps.map((lamp) => {
+            const task = bundle.tasks.find((item) => item.id === lamp.task_id);
+            return task ? <div className="radar-party" key={`${lamp.task_id}-${lamp.lamp}`}><button onClick={() => onOpenTask(task.id)}><span><strong>{labels[lamp.lamp]} · {taskLabel(task.id)} · {task.description}</strong><small>{task.status}</small></span></button></div> : null;
+          })}
         </div>
       )}
     </div>

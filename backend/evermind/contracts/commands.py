@@ -141,6 +141,7 @@ class RecordSignal(CommandEnvelope):
     excerpt: str
     evidence: list[CitationSpec] = Field(default_factory=list)
     reported_by_user_id: int | None = None
+    waiting_on_text: str | None = None
 
 
 class AppendCorroboration(CommandEnvelope):

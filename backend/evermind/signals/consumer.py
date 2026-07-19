@@ -75,6 +75,7 @@ class SignalsConsumer:
                 ts=datetime.fromisoformat(p["ts"]),
                 window_id=p.get("window_id") or 0,
                 evidence=p.get("evidence") or None,
+                waiting_on_text=p.get("waiting_on_text"),
             )
         self.promote_eligible(
             now=event.ts,
@@ -126,7 +127,14 @@ class SignalsConsumer:
             receipts = {
                 (x["message_id"], x.get("rev_at_capture", 1)) for s in signals for x in s.evidence
             }
-            waiting = {"party_id": party} if party is not None else {"text": name}
+            waiting_text = next(
+                (signal.waiting_on_text for signal in signals if signal.waiting_on_text), None
+            )
+            waiting = (
+                {"party_id": party}
+                if party is not None
+                else service.resolve_waiting_on(waiting_text or name)
+            )
             outcome = DecisionsService(self.session, task_port=TasksService(self.session)).handle(
                 ProposeDecision(
                     client_command_id=uuid.uuid5(
@@ -160,8 +168,10 @@ class SignalsConsumer:
                 ),
                 commit=False,
             )
-            if outcome.get("status") in {"proposed", "merged_into_pending"}:
-                decision_id = outcome["decision_id"]
+            if outcome.get("status") in {"proposed", "merged_into_pending", "corroborated"}:
+                decision_id = (
+                    outcome.get("decision_id") or (outcome.get("decision_ids") or [None])[0]
+                )
                 for signal in signals:
                     signal.status, signal.promoted_decision_id = SignalStatus.PROMOTED, decision_id
                 count += 1
