@@ -38,10 +38,12 @@ def _run_consumers_once() -> int:
     surfacing projections. Also invoked by CLIs (demo seed) between commands."""
     from evermind.db.session import SessionLocal
     from evermind.surfacing.consumer import SurfacingConsumer
+    from evermind.signals.consumer import SignalsConsumer
     from evermind.tasks.consumer import TasksConsumer
 
     with SessionLocal() as session:
-        folded = TasksConsumer(session).poll_and_apply()
+        folded = SignalsConsumer(session).poll_and_apply()
+        folded += TasksConsumer(session).poll_and_apply()
         folded += SurfacingConsumer(session).poll_and_apply()
         session.commit()
     return folded

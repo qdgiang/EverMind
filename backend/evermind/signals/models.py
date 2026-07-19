@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from sqlalchemy import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from evermind.contracts.enums import SignalKind, SignalStatus
@@ -27,6 +28,10 @@ class Signal(Base):
     normalized_topic: Mapped[str]
     excerpt: Mapped[str]
     message_id: Mapped[int]
+    # Immutable capture receipts.  The anchor remains message_id for the
+    # identity key, while promotions retain every cited revision.
+    evidence: Mapped[list[dict]] = mapped_column(JSON, default=list)
     ts: Mapped[datetime]
     window_id: Mapped[int]
     status: Mapped[SignalStatus] = mapped_column(default=SignalStatus.OPEN)
+    promoted_decision_id: Mapped[int | None]

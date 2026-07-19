@@ -26,6 +26,23 @@ def test_emit_appends_an_open_signal(db_session: Session):
     assert signal.kind == SignalKind.BLOCKER
 
 
+def test_signal_retains_every_evidence_receipt_and_capture_revision(db_session: Session):
+    """A later promotion must cite every real message, not merely its anchor."""
+    signal_id = SignalsService(db_session).emit(
+        kind=SignalKind.BLOCKER, project_id=1, task_id=7,
+        normalized_topic="sound-supplier", excerpt="still waiting",
+        message_id=42, ts=T0, window_id=1,
+        evidence=[{"message_id": 42, "rev_at_capture": 3},
+                  {"message_id": 43, "rev_at_capture": 2}],
+    )
+
+    signal = db_session.get(Signal, signal_id)
+    assert signal.evidence == [
+        {"message_id": 42, "rev_at_capture": 3},
+        {"message_id": 43, "rev_at_capture": 2},
+    ]
+
+
 def test_single_mention_never_auto_promotes(db_session: Session):
     """The ledger only ever appends — a single call never flips anything to
     `blocked`; that's P3's `try_promote` job, not `emit`."""

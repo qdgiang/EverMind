@@ -1,28 +1,30 @@
-"""Owner: B. GET /blockers?by=party (SIG-2 board)."""
-from fastapi import APIRouter, Depends
+"""Project-scoped, authorized blocker board."""
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from evermind.api.deps import get_session
+from evermind.api.deps import get_session, persona_user_id
+from evermind.org.service import OrgService
 from evermind.tasks.service import TasksService
 
 router = APIRouter(tags=["signals"])
 
 
 @router.get("/blockers")
-def list_blockers(by: str = "party", session: Session = Depends(get_session)):
-    """Grouped-by-party board (G22/SIG-2). Party *names* aren't resolvable here
-    (only `org` knows them, and `connectors`/`tasks` don't import it) — the FE
-    resolves `party_id` -> display name via `org`'s own read surface.
-    """
-    blocked_tasks = TasksService(session).list_tasks(statuses=("blocked",))
-    groups: dict[str, list[dict]] = {}
-    for task in blocked_tasks:
-        key = (
-            f"party:{task.blocked_waiting_on_party_id}"
-            if task.blocked_waiting_on_party_id is not None
-            else task.blocked_waiting_on_text or "unspecified"
-        )
-        groups.setdefault(key, []).append({
+def list_blockers(project_id: int, session: Session = Depends(get_session),
+                  viewer_id: int = Depends(persona_user_id)):
+    org = OrgService(session)
+    if org.get_project(project_id) is None:
+        raise HTTPException(status_code=404, detail="unknown project")
+    if not org.can_view_project(viewer_id, project_id):
+        raise HTTPException(status_code=403, detail="persona is not a member of this project")
+    groups: dict[tuple[int | None, str | None], list[dict]] = {}
+    for task in TasksService(session).list_tasks(project_id=project_id, statuses=("blocked",)):
+        groups.setdefault((task.blocked_waiting_on_party_id, task.blocked_waiting_on_text), []).append({
             "task_id": task.id, "description": task.description, "since": task.blocked_since,
         })
-    return groups
+    output = []
+    for (party_id, text), tasks in groups.items():
+        party = org.get_party(party_id) if party_id is not None else None
+        output.append({"waiting_on": {"party_id": party_id, "name": party.name if party else None, "text": text},
+                       "tasks": sorted(tasks, key=lambda t: (t["since"] or "", t["task_id"]))})
+    return {"groups": sorted(output, key=lambda g: (g["waiting_on"]["name"] or g["waiting_on"]["text"] or "", g["waiting_on"]["party_id"] or 0))}

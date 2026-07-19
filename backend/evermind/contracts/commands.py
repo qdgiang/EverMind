@@ -84,6 +84,9 @@ class ProposeDecision(CommandEnvelope):
     delegated_by_user_id: int | None = None
     delegation_message_id: int | None = None
     context_group_id: int | None = None
+    force_proposed: bool = False
+    review_reason: Literal["signal_promotion"] | None = None
+    reported_by_user_id: int | None = None
 
 
 class ApproveProposal(CommandEnvelope):
@@ -136,6 +139,8 @@ class RecordSignal(CommandEnvelope):
     party_id: int | None = None
     normalized_topic: str
     excerpt: str
+    evidence: list[CitationSpec] = Field(default_factory=list)
+    reported_by_user_id: int | None = None
 
 
 class AppendCorroboration(CommandEnvelope):

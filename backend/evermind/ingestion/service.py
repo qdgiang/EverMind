@@ -138,6 +138,8 @@ class IngestionService:
         self._advance_cursor(group_id, to_epoch)
         window.status = "done"
         window.finished_at = datetime.now(timezone.utc)
+        from evermind.signals.consumer import SignalsConsumer
+        SignalsConsumer(self.session).poll_and_apply()
         TasksConsumer(self.session).poll_and_apply()
         self.session.commit()
         return {"group_id": group_id, "status": "done", "window_id": window.id,
@@ -155,8 +157,13 @@ class IngestionService:
             return {"index": index, "status": "hallucinated_message_ids"}
         if _MARKER_RE.match(anchor.text.strip()):
             return {"index": index, "status": "marker_lane_owns_it"}
-        if candidate.kind == "task_update" and candidate.task_id is None:
+        if candidate.kind in {"task_update", "weak_blocker"} and candidate.task_id is None:
             return {"index": index, "status": "missing_task_id"}
+        if candidate.kind == "weak_blocker":
+            open_ids = {t.id for t in TasksService(self.session).list_tasks(
+                project_id=group.project_id, statuses=("todo", "doing", "blocked"))}
+            if candidate.task_id not in open_ids or not (candidate.normalized_topic or "").strip():
+                return {"index": index, "status": "invalid_weak_blocker"}
         unit_key = candidate_unit_key(candidate)
         existing = self.session.scalar(select(Materialization).where(
             Materialization.source_message_id == anchor.id,
@@ -178,7 +185,7 @@ class IngestionService:
         # status applied/pending_confirm (+task_id) and no id at all
         materialized = (outcome.get("decision_id") is not None
                         or outcome.get("update_id") is not None
-                        or outcome.get("status") in ("applied", "pending_confirm"))
+                        or outcome.get("status") in ("applied", "pending_confirm", "signal_recorded"))
         if not materialized:
             return {"index": index, "status": "rejected_by_gateway",
                     "outcome": outcome}

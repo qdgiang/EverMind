@@ -93,6 +93,15 @@ def apply_op(session: Session, *, decision_id: int, op: dict) -> None:
         setattr(task, facet, value)
         return
 
+    if facet == "blocked_waiting_on":
+        task_id = _task_id_from_target(target)
+        task = _get_or_create_task(session, task_id)
+        if verb != "set" or not isinstance(value, dict):
+            raise ValueError("blocked_waiting_on expects op='set' with a dict value")
+        task.blocked_waiting_on_party_id = value.get("party_id")
+        task.blocked_waiting_on_text = value.get("text")
+        return
+
     if facet == "assignment":
         task_id = _task_id_from_target(target)
         _get_or_create_task(session, task_id)

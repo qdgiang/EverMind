@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from evermind.connectors.models import Message
 from evermind.contracts.commands import (
-    CitationSpec, OpSpec, ProposeDecision, RecordTaskUpdate,
+    CitationSpec, OpSpec, ProposeDecision, RecordSignal, RecordTaskUpdate,
 )
 from evermind.contracts.enums import CitationKind, CreatedFrom, DecisionScope
 from evermind.org.models import ChatGroup, Party, User
@@ -25,13 +25,15 @@ from evermind.tasks.models import Task
 
 
 class ExtractedCandidate(BaseModel):
-    kind: Literal["decision", "new_task", "task_update"]
+    kind: Literal["decision", "new_task", "task_update", "weak_blocker"]
     description: str
     status: Literal["todo", "doing", "done", "blocked"] | None = None
     task_id: int | None = None  # task_update only — must be an OPEN TASKS id
     decided_by_message_id: int  # the message whose author made the call
     evidence_message_ids: list[int] = Field(min_length=1)
     confidence: float = Field(ge=0.0, le=1.0)
+    normalized_topic: str | None = None
+    waiting_on_text: str | None = None
 
 
 class ExtractionResult(BaseModel):
@@ -106,6 +108,8 @@ def candidate_unit_key(candidate: ExtractedCandidate) -> str:
     task), one anchor message can legitimately decide SEVERAL new tasks — the
     description is part of the key so siblings don't dedup each other, while a
     re-extraction of the same window still does."""
+    if candidate.kind == "weak_blocker":
+        return f"signal:{candidate.task_id}|{candidate.normalized_topic}"
     if candidate.kind == "task_update":
         return f"task:{candidate.task_id}|status"
     return f"NEW_TASK|{candidate.description}"
@@ -115,9 +119,21 @@ def candidate_to_command(
     candidate: ExtractedCandidate, *, index: int, group: ChatGroup,
     author: User, anchor: Message, window_id: int,
     from_epoch: int, to_epoch: int, messages_by_id: dict[int, Message],
-) -> ProposeDecision | RecordTaskUpdate:
+) -> ProposeDecision | RecordTaskUpdate | RecordSignal:
     cid = command_id(group.id, from_epoch, to_epoch, index)
     persona = author.handle or anchor.author_identity
+    if candidate.kind == "weak_blocker":
+        return RecordSignal(
+            client_command_id=cid, persona=persona, created_from=CreatedFrom.LLM,
+            confidence=candidate.confidence, ts=anchor.ts, window_id=window_id,
+            source_message_id=anchor.id, reported_by_user_id=author.id,
+            signal_kind="blocker", project_id=group.project_id,
+            task_id=candidate.task_id, normalized_topic=candidate.normalized_topic or "",
+            excerpt=candidate.description,
+            evidence=[CitationSpec(message_id=mid, kind=CitationKind.EVIDENCE,
+                                   rev_at_capture=messages_by_id[mid].current_rev)
+                      for mid in candidate.evidence_message_ids],
+        )
     if candidate.kind == "task_update":
         return RecordTaskUpdate(
             client_command_id=cid, persona=persona, created_from=CreatedFrom.LLM,

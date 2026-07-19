@@ -35,6 +35,12 @@ def build_scheduler(session_factory) -> BackgroundScheduler:
             SurfacingService(session).raise_radar_lamps_to_feed()
             session.commit()
 
+    def signal_promotion_job() -> None:
+        from evermind.signals.consumer import SignalsConsumer
+        with session_factory() as session:
+            SignalsConsumer(session).promote_eligible()
+            session.commit()
+
     def nudge_job() -> None:
         """TODO(B, blocked on Lane A): DEC-7 anti-rot visibility — 48h approver
         nudge (settled #18: this only touches visibility, never a decision's
@@ -58,6 +64,7 @@ def build_scheduler(session_factory) -> BackgroundScheduler:
             session.commit()
 
     scheduler.add_job(radar_job, CronTrigger(hour=6))
+    scheduler.add_job(signal_promotion_job, CronTrigger(hour=6))
     scheduler.add_job(capture_self_check_job, CronTrigger(hour="*"))
     if settings.extraction_interval_sec > 0:
         scheduler.add_job(extraction_job,

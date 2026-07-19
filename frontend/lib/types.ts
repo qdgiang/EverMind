@@ -130,11 +130,9 @@ export interface InboxItem {
   resolution?: string | null;
 }
 
-// GET /blockers?by=party — grouped by resolved party id or free text.
-export type BlockersBoard = Record<
-  string,
-  { task_id: number; description: string; since: string | null }[]
->;
+export interface BlockersResponse {
+  groups: { waiting_on: { party_id: number | null; name: string | null; text: string | null }; tasks: { task_id: number; description: string; since: string | null }[] }[];
+}
 
 // GET /digest/{team} (SurfacingService.digest_for's dict).
 export interface Digest {

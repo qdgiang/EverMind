@@ -50,6 +50,7 @@ FACET_REGISTRY: dict[str, FacetSpec] = {
     # `status` via decisions only for cancel/revive; normal transitions are
     # task_updates and never supersede anything (design-v2 §Facet registry)
     "status": FacetSpec("status", UnitMode.PER_FACET, _SIMPLE),
+    "blocked_waiting_on": FacetSpec("blocked_waiting_on", UnitMode.PER_FACET, _SIMPLE),
     "start_date": FacetSpec("start_date", UnitMode.PER_FACET, _SIMPLE),
     "end_date": FacetSpec("end_date", UnitMode.PER_FACET, _SIMPLE),
     "type": FacetSpec("type", UnitMode.PER_FACET, _SIMPLE),

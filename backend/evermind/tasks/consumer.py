@@ -83,6 +83,14 @@ class TasksConsumer:
                 task_id=task_id, decision_id=decision_id, ts=event.ts,
                 recorded_at=event.ts, stable_event_id=event.caused_by_command, ops=ops,
             ))
+            status_ops = [op for op in ops if op.get("target") == f"task:{task_id}" and op.get("facet") == "status"]
+            if status_ops:
+                if status_ops[-1].get("value") == "blocked":
+                    task.blocked_since = event.ts
+                else:
+                    task.blocked_waiting_on_party_id = None
+                    task.blocked_waiting_on_text = None
+                    task.blocked_since = None
             if task.status == TaskStatus.CANCELED:
                 dependencies.on_predecessor_status_changed(self.session, predecessor_id=task_id)
 

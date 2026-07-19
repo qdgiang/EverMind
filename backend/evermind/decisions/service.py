@@ -251,6 +251,8 @@ class DecisionsService:
                         else cmd.confidence),
             window_id=cmd.window_id,
             stable_event_id=stable,
+            review_reason=cmd.review_reason,
+            reported_by_user_id=cmd.reported_by_user_id,
         )
         self.session.add(decision)
         self.session.flush()
@@ -416,7 +418,9 @@ class DecisionsService:
 
         hold_reason: str | None = None
         hold_extra: dict = {}
-        if cmd.relayed:
+        if cmd.force_proposed:
+            hold_reason = cmd.review_reason or "review_required"
+        elif cmd.relayed:
             hold_reason = "relayed"  # claimed maker not among cited authors
         elif not conf_ok:
             hold_reason = "below_tau"  # G19 confidence gate — never silently dropped
@@ -526,7 +530,8 @@ class DecisionsService:
         # unit is withdrawn, linked to the newer proposal
         withdrawn = self._withdraw_own_older(decision, plan, cmd)
 
-        approvers = auth.approvers or self._fallback_approvers(cmd, occupants, hold_reason)
+        approvers = (auth.approvers if cmd.force_proposed
+                     else auth.approvers or self._fallback_approvers(cmd, occupants, hold_reason))
         self._emit("decision_proposed", "decision", decision.id,
                    self._decision_payload(decision, hold_reason=hold_reason,
                                           approvers=approvers,
@@ -994,7 +999,9 @@ class DecisionsService:
                     "task_id": cmd.task_id, "party_id": cmd.party_id,
                     "normalized_topic": cmd.normalized_topic, "excerpt": cmd.excerpt,
                     "message_id": cmd.source_message_id, "ts": _iso(ts),
-                    "window_id": cmd.window_id},
+                    "window_id": cmd.window_id,
+                    "evidence": [c.model_dump() for c in cmd.evidence],
+                    "reported_by_user_id": cmd.reported_by_user_id},
                    ts, cmd)
         return {"status": "signal_recorded"}
 
