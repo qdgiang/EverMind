@@ -994,7 +994,8 @@ class DecisionsService:
                     "task_id": cmd.task_id, "party_id": cmd.party_id,
                     "normalized_topic": cmd.normalized_topic, "excerpt": cmd.excerpt,
                     "message_id": cmd.source_message_id, "ts": _iso(ts),
-                    "window_id": cmd.window_id},
+                    "window_id": cmd.window_id,
+                    "author_user_id": cmd.author_user_id},
                    ts, cmd)
         return {"status": "signal_recorded"}
 

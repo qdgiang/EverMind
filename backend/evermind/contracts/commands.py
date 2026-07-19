@@ -136,6 +136,10 @@ class RecordSignal(CommandEnvelope):
     party_id: int | None = None
     normalized_topic: str
     excerpt: str
+    # contract addition (signals-promotion pipeline): who voiced the mention.
+    # Promotion uses the FIRST mention's author as the maker of the proposed
+    # blocked-state decision — attribution stays with the human who raised it.
+    author_user_id: int | None = None
 
 
 class AppendCorroboration(CommandEnvelope):

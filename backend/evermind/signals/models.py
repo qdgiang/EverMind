@@ -30,3 +30,6 @@ class Signal(Base):
     ts: Mapped[datetime]
     window_id: Mapped[int]
     status: Mapped[SignalStatus] = mapped_column(default=SignalStatus.OPEN)
+    # who voiced the mention (resolved identity) — promotion's proposed
+    # blocked-state decision is made in the FIRST mention author's name.
+    author_user_id: Mapped[int | None]

@@ -3,16 +3,24 @@
 """
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from evermind.contracts.enums import SignalKind, SignalStatus
+from evermind.contracts.commands import CitationSpec, OpSpec, ProposeDecision
+from evermind.contracts.enums import (
+    CitationKind, CreatedFrom, DecisionScope, SignalKind, SignalStatus,
+)
 from evermind.org.service import OrgService
 from evermind.signals import promotion, radar
 from evermind.signals.models import Signal
 from evermind.tasks.service import TasksService
+
+if TYPE_CHECKING:  # signals -> decisions is runtime-injected, never module-load
+    from evermind.decisions.service import DecisionsService
 
 
 class SignalsService:
@@ -72,6 +80,76 @@ class SignalsService:
             task_id=task_id, party_id=party_id,
         )
         return promotion.evaluate(open_signals, now=now or datetime.now(timezone.utc))
+
+    def promotion_sweep(self, *, decisions_service: "DecisionsService | None" = None,
+                        now: datetime | None = None) -> list[dict]:
+        """SIG-1 P3 — the promotion beat (scheduler `promotion_job`, default
+        every 60s). For every OPEN blocker/dependency identity: apply the pure
+        rule (≥2 corroborating mentions, or 1 + staleness); on promotion, flip
+        the mentions to `promoted` (they ARE the board card, citations = every
+        accumulated mention, G27) and — when the identity is task-linked and a
+        gateway was provided — submit a PROPOSED blocked-state decision through
+        it in the FIRST mention author's name. Deliberately below-τ confidence:
+        promotion proposes, a human confirms (design-v2 §Signals); the clock
+        only ever creates visibility for decisions (settled #18).
+
+        asks/parked never promote — they age into the digest (G35, separate
+        surface). Dependency-kind promotions surface on the board only for now
+        (requested-edge materialization needs successor semantics — tracked).
+        """
+        now = now or datetime.now(timezone.utc)
+        identities = self.session.execute(
+            select(Signal.project_id, Signal.task_id, Signal.party_id,
+                   Signal.normalized_topic)
+            .where(Signal.status == SignalStatus.OPEN)
+            .where(Signal.kind.in_((SignalKind.BLOCKER, SignalKind.DEPENDENCY)))
+            .distinct()
+        ).all()
+        reports: list[dict] = []
+        for project_id, task_id, party_id, topic in identities:
+            mentions = self.open_signals_for_identity(
+                project_id=project_id, normalized_topic=topic,
+                task_id=task_id, party_id=party_id)
+            verdict = promotion.evaluate(mentions, now=now)
+            if verdict is None:
+                continue
+            for mention in mentions:
+                mention.status = SignalStatus.PROMOTED
+            report: dict = {"topic": topic, "task_id": task_id,
+                            "party_id": party_id,
+                            "citations": [m.message_id for m in mentions]}
+            first = mentions[0]
+            if (task_id is not None and decisions_service is not None
+                    and first.author_user_id is not None):
+                cid = uuid.uuid5(uuid.NAMESPACE_URL,
+                                 "evermind-promote:"
+                                 f"{project_id}:{task_id}:{party_id}:{topic}:"
+                                 f"{mentions[-1].message_id}")
+                outcome = decisions_service.handle(ProposeDecision(
+                    client_command_id=cid,
+                    persona=f"user-{first.author_user_id}",
+                    created_from=CreatedFrom.LLM,
+                    confidence=0.5,  # < τ on purpose: born PROPOSED, human confirms
+                    ts=first.ts, source_message_id=first.message_id,
+                    window_id=first.window_id,
+                    decided_by_user_id=first.author_user_id,
+                    scope=DecisionScope.TASK, scope_target=f"task:{task_id}",
+                    description=f"Vướng: {topic}",
+                    ops=[OpSpec(target=f"task:{task_id}", facet="status", op="set",
+                                value={"status": "blocked",
+                                       "waiting_on_party_id": party_id,
+                                       "waiting_on_text": None if party_id else topic,
+                                       "since": first.ts.isoformat()})],
+                    citations=[CitationSpec(message_id=m.message_id,
+                                            kind=CitationKind.EVIDENCE,
+                                            rev_at_capture=1)
+                               for m in mentions],
+                ), commit=False)
+                report["decision"] = {"status": outcome.get("status"),
+                                      "decision_id": outcome.get("decision_id")}
+            self.session.flush()
+            reports.append(report)
+        return reports
 
     def resolve_waiting_on(self, text: str) -> dict:
         """SIG-2 — `waiting_on` resolution: fuzzy-match `text` against known
